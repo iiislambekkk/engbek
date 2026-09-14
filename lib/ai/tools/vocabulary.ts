@@ -1,7 +1,17 @@
+import "server-only"
+
 import { tool } from "ai"
 import { z } from "zod"
 
-import { findVocabulary } from "@/lib/vocabulary/vocabulary-service"
+import {
+    PartOfSpeech,
+    VocabularyAddReason,
+    VocabularyType,
+} from "@/app/generated/prisma"
+import {
+    addOrUpdateVocabulary,
+    findVocabulary,
+} from "@/lib/vocabulary/vocabulary-service"
 
 const vocabularyTypeSchema = z.enum([
     "WORD",
@@ -10,6 +20,39 @@ const vocabularyTypeSchema = z.enum([
     "COLLOCATION",
     "IDIOM",
 ])
+
+const partOfSpeechSchema = z.enum([
+    "NOUN",
+    "VERB",
+    "ADJECTIVE",
+    "ADVERB",
+    "PRONOUN",
+    "PREPOSITION",
+    "CONJUNCTION",
+    "INTERJECTION",
+    "DETERMINER",
+    "OTHER",
+])
+
+export const addVocabularyInputSchema = z.object({
+    term: z.string().trim().min(1).max(200),
+    type: vocabularyTypeSchema,
+    meanings: z.array(z.object({
+        definition: z.string().trim().min(1).max(1000),
+        translation: z.string().trim().max(500).optional(),
+        partOfSpeech: partOfSpeechSchema.optional(),
+        examples: z.array(z.string().trim().min(1).max(1000)).max(10).default([]),
+    })).min(1).max(20),
+    notes: z.string().trim().max(2000).optional(),
+    tags: z.array(z.string().trim().min(1).max(50)).max(20).default([]),
+    reason: z.enum(["USER_REQUEST", "AI_SUGGESTION", "AI_AUTO_ADD", "MANUAL"])
+        .default("USER_REQUEST"),
+    confirmation: z.enum([
+        "EXPLICIT_USER_REQUEST",
+        "USER_CONFIRMED",
+        "AI_AUTONOMOUS",
+    ]).default("EXPLICIT_USER_REQUEST"),
+})
 
 export function createVocabularyTools(
     userId: string,
@@ -73,6 +116,33 @@ export function createVocabularyTools(
                             ({ tag }) => tag.name,
                         ),
                     })),
+                }
+            },
+        }),
+
+        addVocabulary: tool({
+            description: "Add or enrich one vocabulary item. Use findVocabulary first.",
+            inputSchema: addVocabularyInputSchema,
+            execute: async (input, { toolCallId }) => {
+                const result = await addOrUpdateVocabulary(userId, {
+                    term: input.term,
+                    type: input.type as VocabularyType,
+                    meanings: input.meanings.map((meaning) => ({
+                        ...meaning,
+                        partOfSpeech: meaning.partOfSpeech as PartOfSpeech | undefined,
+                    })),
+                    notes: input.notes,
+                    tags: input.tags,
+                    reason: input.reason as VocabularyAddReason,
+                    sourceId: toolCallId,
+                })
+
+                return {
+                    ...result,
+                    action: result.created ? "created" : "updated",
+                    message: result.created
+                        ? `Added "${result.term}" to the user's vocabulary.`
+                        : `Updated "${result.term}" in the user's vocabulary.`,
                 }
             },
         }),

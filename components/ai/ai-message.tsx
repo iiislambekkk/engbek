@@ -40,8 +40,8 @@ export function AiMessage({
             <div
                 className={
                     isUser
-                        ? "max-w-[85%] rounded-2xl rounded-br-md bg-primary px-3 py-2 text-sm text-primary-foreground"
-                        : "max-w-[90%] rounded-2xl rounded-bl-md bg-muted px-3 py-2 text-sm"
+                        ? "max-w-[85%] rounded-2xl rounded-br-md bg-primary p-5 text-sm text-primary-foreground"
+                        : "max-w-[90%] rounded-2xl rounded-bl-md bg-muted p-5 text-sm"
                 }
             >
                 {message.parts.map(
@@ -174,7 +174,7 @@ export function AiMessage({
                                 return (
                                     <div
                                         key={part.toolCallId}
-                                        className="mt-2 text-xs text-muted-foreground"
+                                        className="my-2 text-xs text-muted-foreground"
                                     >
                                         ✓ Vocabulary updated
                                     </div>

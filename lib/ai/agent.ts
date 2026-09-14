@@ -9,14 +9,12 @@ import {
 import { prisma } from "@/lib/prisma"
 
 import { aiModel } from "./model"
-import { createAddVocabularyTool } from "./tools/add-vocabulary"
 import { createVocabularyTools } from "./tools/vocabulary"
 
 export function createAssistantAgent(
     userId: string,
 ) {
     const vocabularyTools = createVocabularyTools(userId)
-    const addVocabulary = createAddVocabularyTool(userId)
 
     return new ToolLoopAgent({
         model: aiModel,
@@ -181,7 +179,7 @@ not complete the operation instead of pretending it worked.
 
         tools: {
             findVocabulary: vocabularyTools.findVocabulary,
-            addVocabulary,
+            addVocabulary: vocabularyTools.addVocabulary,
         },
 
         toolApproval: {
