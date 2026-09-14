@@ -42,9 +42,8 @@ export default async function AppLayout({
                 </SidebarInset>
 
                 <MobileNav />
-                    {children}
 
-                    <AiAssistant />
+                <AiAssistant />
             </AiAssistantProvider>
         </SidebarProvider>
     )

@@ -19,9 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const pageTitles = [
-    { href: "/vocabulary", title: "Vocabulary" },
-    { href: "/learning", title: "Learning" },
-    { href: "/settings", title: "Settings" },
+    { href: "/", title: "Vocabulary" },
 ]
 
 function getInitials(name: string) {
@@ -42,8 +40,7 @@ export function AppHeader() {
     const currentPage =
         pageTitles.find(
             (page) =>
-                pathname === page.href ||
-                pathname.startsWith(`${page.href}/`)
+                page.href === "/" && pathname === "/"
         )?.title ?? "Lexi"
 
     const handleLogout = async () => {

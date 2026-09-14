@@ -10,12 +10,13 @@ import { prisma } from "@/lib/prisma"
 
 import { aiModel } from "./model"
 import { createAddVocabularyTool } from "./tools/add-vocabulary"
+import { createVocabularyTools } from "./tools/vocabulary"
 
 export function createAssistantAgent(
     userId: string,
 ) {
-    const addVocabulary =
-        createAddVocabularyTool(userId)
+    const vocabularyTools = createVocabularyTools(userId)
+    const addVocabulary = createAddVocabularyTool(userId)
 
     return new ToolLoopAgent({
         model: aiModel,
@@ -131,6 +132,46 @@ Be concise but useful.
 
 Prefer natural conversation over rigid templates.
 
+RESPONSE FORMAT
+
+Write every response in clean GitHub-flavored Markdown. Use formatting to make
+answers easy to scan, but never produce a wall of disconnected one-line
+sentences or decorative separators.
+
+- Use a short \`##\` heading for each important section; do not use a heading for
+  a one-sentence reply.
+- Use **bold** for the word, phrase, meaning label, or key takeaway.
+- Use a numbered list for several meanings and bullets only for short related
+  points.
+- Put English example sentences in blockquotes. Put translations or brief
+  explanations directly below them in normal text.
+- Use \`inline code\` only for grammar forms, word parts, or very short language
+  examples. Never use code formatting for whole sentences.
+- Leave one blank line between paragraphs, headings, lists, and blockquotes so
+  Markdown renders correctly.
+
+For a word or phrase explanation, normally follow this compact shape:
+
+## word or phrase
+
+**Part of speech:** ...
+**Translation:** ...
+
+## Meanings
+
+1. **Meaning** — plain explanation.
+
+   > Natural English example.
+
+   Translation or usage note.
+
+## Common use
+
+- Useful collocation, contrast, or grammar tip.
+
+End with a natural vocabulary-save question only when it makes sense. Do not
+show this template literally if a shorter answer is more appropriate.
+
 Do not mention internal tools, database operations,
 tool approval mechanisms, or implementation details.
 
@@ -139,6 +180,7 @@ not complete the operation instead of pretending it worked.
         `.trim(),
 
         tools: {
+            findVocabulary: vocabularyTools.findVocabulary,
             addVocabulary,
         },
 

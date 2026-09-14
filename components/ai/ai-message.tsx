@@ -52,7 +52,7 @@ export function AiMessage({
                             return (
                                 <div
                                     key={`${message.id}-${index}`}
-                                    className="whitespace-pre-wrap"
+                                    className={isUser ? "whitespace-pre-wrap" : undefined}
                                 >
                                     <AiAssistantMarkdown content={part.text} />
                                 </div>
@@ -131,7 +131,7 @@ export function AiMessage({
                                             </div>
 
                                             <div className="mt-1 text-sm text-muted-foreground">
-                                                {part.input.term}
+                                                {(part.input as { term?: string }).term ?? "Vocabulary item"}
                                             </div>
                                         </div>
 
@@ -190,7 +190,7 @@ export function AiMessage({
                                         key={part.toolCallId}
                                         className="mt-2 text-xs text-destructive"
                                     >
-                                        Failed to update vocabulary.
+                                        Failed to update vocabulary: {part.errorText}
                                     </div>
                                 )
                             }

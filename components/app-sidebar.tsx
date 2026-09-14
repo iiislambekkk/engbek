@@ -4,15 +4,12 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
     BookOpen,
-    GraduationCap,
-    Settings,
     Sparkles,
 } from "lucide-react"
 
 import {
     Sidebar,
     SidebarContent,
-    SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
     SidebarGroupLabel,
@@ -25,13 +22,8 @@ import {
 const mainNavigation = [
     {
         title: "Vocabulary",
-        href: "/vocabulary",
+        href: "/",
         icon: BookOpen,
-    },
-    {
-        title: "Learning",
-        href: "/learning",
-        icon: GraduationCap,
     },
 ]
 
@@ -101,24 +93,6 @@ export function AppSidebar() {
                 </SidebarGroup>
             </SidebarContent>
 
-            {/* Settings */}
-            <SidebarFooter>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            render={
-                                <Link href="/settings" />
-                            }
-                            isActive={pathname.startsWith("/settings")}
-                            tooltip="Settings"
-                            className="cursor-pointer"
-                        >
-                            <Settings />
-                            <span>Settings</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarFooter>
         </Sidebar>
     )
 }

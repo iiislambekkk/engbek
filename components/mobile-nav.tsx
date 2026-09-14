@@ -4,25 +4,13 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
     BookOpen,
-    GraduationCap,
-    Settings,
 } from "lucide-react"
 
 const navigation = [
     {
         title: "Vocabulary",
-        href: "/vocabulary",
+        href: "/",
         icon: BookOpen,
-    },
-    {
-        title: "Learning",
-        href: "/learning",
-        icon: GraduationCap,
-    },
-    {
-        title: "Settings",
-        href: "/settings",
-        icon: Settings,
     },
 ]
 

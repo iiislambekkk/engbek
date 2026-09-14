@@ -1,7 +1,6 @@
 import {
     ExampleSource,
     PartOfSpeech,
-    Prisma,
     VocabularyAddReason,
     VocabularyType,
 } from "@/app/generated/prisma"
@@ -24,6 +23,7 @@ export type AddVocabularyInput = {
     notes?: string
     tags: string[]
     reason: VocabularyAddReason
+    sourceId?: string
 }
 
 function normalizeText(value: string) {
@@ -52,6 +52,9 @@ export async function findVocabulary(
 ) {
     const normalizedTerm = normalizeVocabularyTerm(term)
 
+    // `normalizedTerm` is indexed together with `userId`. This intentionally
+    // performs an exact lookup instead of reading a user's whole vocabulary
+    // into application memory and filtering it there.
     return prisma.vocabularyItem.findMany({
         where: {
             userId,
@@ -298,6 +301,7 @@ export async function addOrUpdateVocabulary(
             data: {
                 vocabularyId: item.id,
                 reason: input.reason,
+                sourceId: input.sourceId,
             },
         })
 

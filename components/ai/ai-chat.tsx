@@ -95,7 +95,7 @@ export function AiChat({
     return (
         <div className="flex min-h-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-                <div className="mx-auto flex max-w-3xl flex-col gap-4">
+                <div className="flex w-full flex-col gap-4">
                     {messages.length === 0 && (
                         <div className="flex min-h-[50vh] items-center justify-center">
                             <div className="text-center">
@@ -157,7 +157,7 @@ export function AiChat({
             <div className="border-t bg-background p-3">
                 <form
                     onSubmit={handleSubmit}
-                    className="mx-auto flex max-w-3xl items-end gap-2"
+                    className="flex w-full items-end gap-2"
                 >
                     <Textarea
                         value={input}
