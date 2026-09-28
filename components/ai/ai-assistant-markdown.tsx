@@ -2,16 +2,19 @@
 
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import {cn} from "cn";
 
 interface AiAssistantMarkdownProps {
-    content: string
+    content: string,
+    isUser: boolean,
 }
 
 export function AiAssistantMarkdown({
                                         content,
+    isUser
                                     }: AiAssistantMarkdownProps) {
     return (
-        <div className="ai-assistant-markdown text-[0.925rem] leading-6 text-foreground">
+        <div className={cn("ai-assistant-markdown text-[0.925rem] leading-6", isUser && "text-foreground")}>
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{

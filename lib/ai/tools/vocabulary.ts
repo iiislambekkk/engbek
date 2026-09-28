@@ -36,10 +36,13 @@ const partOfSpeechSchema = z.enum([
 
 export const addVocabularyInputSchema = z.object({
     term: z.string().trim().min(1).max(200),
+    phonetic: z.string().trim().min(1).max(100).optional()
+        .describe("IPA phonetic transcription, for example /əˈmɪnəs/"),
     type: vocabularyTypeSchema,
     meanings: z.array(z.object({
         definition: z.string().trim().min(1).max(1000),
-        translation: z.string().trim().max(500).optional(),
+        translation: z.string().trim().min(1).max(500)
+            .describe("Russian translation for this specific meaning"),
         partOfSpeech: partOfSpeechSchema.optional(),
         examples: z.array(z.string().trim().min(1).max(1000)).max(10).default([]),
     })).min(1).max(20),
@@ -126,6 +129,7 @@ export function createVocabularyTools(
             execute: async (input, { toolCallId }) => {
                 const result = await addOrUpdateVocabulary(userId, {
                     term: input.term,
+                    phonetic: input.phonetic,
                     type: input.type as VocabularyType,
                     meanings: input.meanings.map((meaning) => ({
                         ...meaning,

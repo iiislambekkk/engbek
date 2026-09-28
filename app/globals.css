@@ -167,3 +167,23 @@
     @apply font-sans;
   }
 }
+
+/* Thin scrollbar */
+
+.thin-scrollbar::-webkit-scrollbar {
+  width: 4px;
+
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 9999px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted-foreground);
+}

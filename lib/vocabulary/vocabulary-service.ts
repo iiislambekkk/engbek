@@ -18,6 +18,7 @@ export type VocabularyMeaningInput = {
 
 export type AddVocabularyInput = {
     term: string
+    phonetic?: string
     type: VocabularyType
     meanings: VocabularyMeaningInput[]
     notes?: string
@@ -116,6 +117,7 @@ export async function addOrUpdateVocabulary(
                     term: input.term.trim(),
                     normalizedTerm,
                     type: input.type,
+                    phonetic: input.phonetic?.trim() || null,
                     notes: input.notes ?? null,
 
                     meanings: {
@@ -162,6 +164,12 @@ export async function addOrUpdateVocabulary(
                 0,
             )
         } else {
+            if (input.phonetic?.trim() && item.phonetic !== input.phonetic.trim()) {
+                await tx.vocabularyItem.update({
+                    where: { id: item.id },
+                    data: { phonetic: input.phonetic.trim() },
+                })
+            }
             if (input.notes?.trim()) {
                 const currentNotes = item.notes?.trim() ?? ""
 

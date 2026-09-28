@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <title>Оқу кабинетінің сызбасы</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .room {
+            position: relative;
+            width: 900px;
+            height: 600px;
+            margin: 30px auto;
+            background: #ffffff;
+            border: 4px solid #34495e;
+            border-radius: 8px;
+        }
+        .item {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 13px;
+            border-radius: 6px;
+            color: #fff;
+            padding: 4px;
+            box-sizing: border-box;
+        }
+        .door       { top: 10px; left: 10px; width: 60px; height: 20px; background: #7f8c8d; }
+        .window     { top: -6px; left: 300px; width: 300px; height: 12px; background: #3498db; }
+        .board      { top: 20px; left: 250px; width: 400px; height: 40px; background: #2c3e50; }
+        .teacher    { top: 80px; left: 400px; width: 100px; height: 50px; background: #16a085; }
+
+        /* Оқушы компьютерлері – 2 қатар, әрқайсысында 5 */
+        .pc1 { top: 170px; left: 60px;  width: 90px; height: 60px; background: #2980b9; }
+        .pc2 { top: 170px; left: 180px; width: 90px; height: 60px; background: #2980b9; }
+        .pc3 { top: 170px; left: 300px; width: 90px; height: 60px; background: #2980b9; }
+        .pc4 { top: 170px; left: 420px; width: 90px; height: 60px; background: #2980b9; }
+        .pc5 { top: 170px; left: 540px; width: 90px; height: 60px; background: #2980b9; }
+
+        .pc6  { top: 280px; left: 60px;  width: 90px; height: 60px; background: #2980b9; }
+        .pc7  { top: 280px; left: 180px; width: 90px; height: 60px; background: #2980b9; }
+        .pc8  { top: 280px; left: 300px; width: 90px; height: 60px; background: #2980b9; }
+        .pc9  { top: 280px; left: 420px; width: 90px; height: 60px; background: #2980b9; }
+        .pc10 { top: 280px; left: 540px; width: 90px; height: 60px; background: #2980b9; }
+
+        .switch   { top: 380px; left: 700px; width: 100px; height: 40px; background: #8e44ad; }
+        .router   { top: 430px; left: 700px; width: 100px; height: 40px; background: #d35400; }
+        .printer  { top: 480px; left: 700px; width: 100px; height: 40px; background: #c0392b; }
+        .cabinet  { top: 530px; left: 700px; width: 100px; height: 40px; background: #7f8c8d; }
+
+        .legend {
+            width: 900px;
+            margin: 20px auto;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 15px;
+        }
+        .legend div { margin: 4px 0; font-size: 14px; }
+        .box {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Оқу кабинетінің сызбасы (10 компьютер)</h1>
+
+<div class="room">
+    <div class="item door">Есік</div>
+    <div class="item window">Терезе</div>
+    <div class="item board">Тақта</div>
+    <div class="item teacher">Мұғалім столы + ПК</div>
+
+    <div class="item pc1">ПК-1</div>
+    <div class="item pc2">ПК-2</div>
+    <div class="item pc3">ПК-3</div>
+    <div class="item pc4">ПК-4</div>
+    <div class="item pc5">ПК-5</div>
+
+    <div class="item pc6">ПК-6</div>
+    <div class="item pc7">ПК-7</div>
+    <div class="item pc8">ПК-8</div>
+    <div class="item pc9">ПК-9</div>
+    <div class="item pc10">ПК-10</div>
+
+    <div class="item switch">Коммутатор</div>
+    <div class="item router">Маршрутизатор</div>
+    <div class="item printer">Желілік принтер</div>
+    <div class="item cabinet">Шкаф/сервер</div>
+</div>
+
+<div class="legend">
+    <h3>Шартты белгілер</h3>
+    <div><span class="box" style="background:#2980b9;"></span> Оқушы компьютері (ПК-1...ПК-10)</div>
+    <div><span class="box" style="background:#16a085;"></span> Мұғалім столы мен компьютері</div>
+    <div><span class="box" style="background:#2c3e50;"></span> Интерактивті тақта</div>
+    <div><span class="box" style="background:#3498db;"></span> Терезе</div>
+    <div><span class="box" style="background:#7f8c8d;"></span> Есік / шкаф</div>
+    <div><span class="box" style="background:#8e44ad;"></span> Желілік коммутатор (switch)</div>
+    <div><span class="box" style="background:#d35400;"></span> Маршрутизатор (router)</div>
+    <div><span class="box" style="background:#c0392b;"></span> Желілік принтер</div>
+</div>
+
+</body>
+</html>

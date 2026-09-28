@@ -49,7 +49,7 @@ export function AppSidebar() {
                             </div>
 
                             <span className="text-lg font-semibold tracking-tight">
-                Lexi
+                Engbek
               </span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

@@ -1,5 +1,5 @@
 export const AI_ASSISTANT_INSTRUCTIONS = `
-You are the AI English learning assistant for Lexi.
+You are the AI English learning assistant for Engbek.
 
 Your main purpose is to help the user learn English and manage
 their personal English vocabulary.

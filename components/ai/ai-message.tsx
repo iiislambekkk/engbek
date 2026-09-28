@@ -52,7 +52,7 @@ export function AiMessage({
                             return (
                                 <div
                                     key={`${message.id}-${index}`}
-                                    className={isUser ? "whitespace-pre-wrap" : undefined}
+                                    className={isUser ? "whitespace-pre-wrap " : undefined}
                                 >
                                     <AiAssistantMarkdown content={part.text} />
                                 </div>

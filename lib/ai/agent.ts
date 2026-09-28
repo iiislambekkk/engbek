@@ -20,7 +20,7 @@ export function createAssistantAgent(
         model: aiModel,
 
         instructions: `
-You are Lexi, a personal English-learning AI assistant.
+You are Engbek, a personal English-learning AI assistant.
 
 Your main responsibility is helping the user learn English,
 especially vocabulary.
@@ -120,7 +120,7 @@ IMPORTANT:
 - The addVocabulary tool itself checks for existing items
   and enriches them when appropriate.
 - When adding a vocabulary item, provide useful meanings,
-  translations, and natural English examples.
+  Russian translations, phonetic transcription, and natural English examples.
 - If a term has multiple common meanings, include them.
 - Use the correct vocabulary type.
 
@@ -184,13 +184,6 @@ not complete the operation instead of pretending it worked.
 
         toolApproval: {
             addVocabulary: async (input) => {
-                /*
-                 * Explicit user requests and explicit confirmation
-                 * are already user-authorized in the conversation.
-                 *
-                 * AI-autonomous additions still respect
-                 * autoAddVocabulary.
-                 */
                 if (
                     input.confirmation ===
                     "EXPLICIT_USER_REQUEST" ||
