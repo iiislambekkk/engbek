@@ -1,0 +1,1 @@
+﻿const Database=require("better-sqlite3");const db=new Database("dev.db",{readonly:true});console.log("legacy chat tables",db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN (?,?)").all("Chat","ChatMessage"));console.log("legacy setting",db.prepare("PRAGMA table_info(UserSettings)").all().some(column=>column.name==="autoAddVocabulary"));db.close();

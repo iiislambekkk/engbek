@@ -9,6 +9,8 @@ type DrawerContextProps = {
   modal: DrawerPrimitive.Root.Props["modal"]
   showSwipeHandle: boolean
   swipeDirection: NonNullable<DrawerPrimitive.Root.Props["swipeDirection"]>
+  overlayClassName?: string
+  viewportClassName?: string
 }
 
 const DrawerContext = React.createContext<DrawerContextProps | null>(null)
@@ -28,14 +30,18 @@ function Drawer({
   showSwipeHandle = false,
   snapPoints,
   swipeDirection = "down",
+  overlayClassName,
+  viewportClassName,
   ...props
 }: DrawerPrimitive.Root.Props & {
   showSwipeHandle?: boolean
+  overlayClassName?: string
+  viewportClassName?: string
 }) {
   const hasSnapPoints = snapPoints != null && snapPoints.length > 0
   const contextValue = React.useMemo(
-    () => ({ hasSnapPoints, modal, showSwipeHandle, swipeDirection }),
-    [hasSnapPoints, modal, showSwipeHandle, swipeDirection]
+    () => ({ hasSnapPoints, modal, showSwipeHandle, swipeDirection, overlayClassName, viewportClassName }),
+    [hasSnapPoints, modal, showSwipeHandle, swipeDirection, overlayClassName, viewportClassName]
   )
 
   return (
@@ -101,19 +107,19 @@ function DrawerContent({
   children,
   ...props
 }: DrawerPrimitive.Popup.Props) {
-  const { hasSnapPoints, modal, showSwipeHandle, swipeDirection } = useDrawer()
+  const { hasSnapPoints, modal, showSwipeHandle, swipeDirection, overlayClassName, viewportClassName } = useDrawer()
   const swipeAxis =
     swipeDirection === "down" || swipeDirection === "up" ? "y" : "x"
 
   return (
     <DrawerPortal data-slot="drawer-portal">
       {modal === true && (
-        <DrawerOverlay data-snap-points={hasSnapPoints ? "" : undefined} />
+        <DrawerOverlay className={overlayClassName} data-snap-points={hasSnapPoints ? "" : undefined} />
       )}
       <DrawerPrimitive.Viewport
         data-slot="drawer-viewport"
         data-modal={modal}
-        className="pointer-events-none fixed inset-0 z-50 select-none data-[modal=true]:pointer-events-auto"
+        className={cn("pointer-events-none fixed inset-0 z-50 select-none data-[modal=true]:pointer-events-auto", viewportClassName)}
       >
         <DrawerPrimitive.Popup
           data-slot="drawer-popup"

@@ -10,7 +10,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Engbek",
-  description: "Your personal English learning assistant",
+  description: "Build your English vocabulary with contextual explanations from Watch.",
 }
 
 export default function RootLayout({
@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
       <html lang="en" suppressHydrationWarning>
-        <body className={`${inter.className} antialiased`}>
+        <body className={` antialiased`}>
           <ThemeProvider
               attribute="class"
               defaultTheme="system"

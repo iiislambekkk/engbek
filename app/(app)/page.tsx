@@ -1,20 +1,26 @@
-import { headers } from "next/headers"
-import { BookOpen, MessageCircle } from "lucide-react"
-import { VocabularyPage as VocabularyContent } from "@/components/vocabulary-page"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { auth } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import Link from "next/link"
+import { BookOpen, MonitorPlay } from "lucide-react"
 
-export default async function VocabularyPage() {
-    const session = await auth.api.getSession({ headers: await headers() })
-    if (!session?.user) return null
-    const [total, items] = await Promise.all([
-        prisma.vocabularyItem.count({ where: { userId: session.user.id } }),
-        prisma.vocabularyItem.findMany({
-            where: { userId: session.user.id }, orderBy: { updatedAt: "desc" }, take: 100,
-            select: { id: true, term: true, type: true, phonetic: true, pronunciation: true, familiarity: true, createdAt: true, updatedAt: true, notes: true, meanings: { orderBy: { createdAt: "asc" }, select: { id: true, definition: true, translation: true, examples: { select: { id: true, text: true }, orderBy: { createdAt: "asc" } } } }, tags: { select: { tag: { select: { name: true } } } } },
-        }),
-    ])
-    if (!items.length) return <section className="space-y-6"><header><p className="text-sm font-medium text-primary">Your library</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">Vocabulary</h1></header><Card className="min-h-80 items-center justify-center text-center"><CardHeader className="items-center"><div className="mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary"><BookOpen className="size-6" /></div><CardTitle>Your vocabulary is empty</CardTitle><CardDescription className="max-w-sm">Ask the AI assistant to explain a word, then save it here when it is useful to you.</CardDescription></CardHeader><CardContent className="flex items-center gap-2 text-sm text-muted-foreground"><MessageCircle className="size-4" /> Use the AI button in the lower-right corner to begin.</CardContent></Card></section>
-    return <VocabularyContent items={items} total={total} />
+export default function HomePage() {
+    return (
+        <section className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-8 sm:py-16">
+            <div className="space-y-3">
+                <p className="text-sm font-medium text-muted-foreground">Engbek</p>
+                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Welcome home</h1>
+                <p className="max-w-xl text-muted-foreground">Choose where you want to continue learning English.</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Link href="/vocabulary" className="group rounded-xl border bg-card p-6 transition-colors hover:bg-accent">
+                    <BookOpen className="mb-5 size-6 text-primary" />
+                    <h2 className="font-semibold">Vocabulary</h2>
+                    <p className="mt-2 text-sm text-muted-foreground">Review saved words, translations, and notes.</p>
+                </Link>
+                <Link href="/watch" className="group rounded-xl border bg-card p-6 transition-colors hover:bg-accent">
+                    <MonitorPlay className="mb-5 size-6 text-primary" />
+                    <h2 className="font-semibold">Watch</h2>
+                    <p className="mt-2 text-sm text-muted-foreground">Practice English with videos and saved expressions.</p>
+                </Link>
+            </div>
+        </section>
+    )
 }

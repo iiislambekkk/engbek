@@ -9,7 +9,46 @@ import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false)
+    const [mode, setMode] = useState<"signin" | "signup">("signin")
     const [error, setError] = useState<string | null>(null)
+
+    function destination() {
+        const next = new URLSearchParams(window.location.search).get("next")
+        if (!next) return "/"
+        try {
+            const url = new URL(next, window.location.origin)
+            return url.origin === window.location.origin ? `${url.pathname}${url.search}${url.hash}` : "/"
+        } catch { return "/" }
+    }
+
+    async function handleCredentials(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault()
+        const formData = new FormData(event.currentTarget)
+        setLoading(true)
+        setError(null)
+
+        const email = String(formData.get("email") ?? "").trim()
+        const password = String(formData.get("password") ?? "")
+
+        try {
+            const result = mode === "signin"
+                ? await authClient.signIn.email({ email, password, callbackURL: destination() })
+                : await authClient.signUp.email({
+                    name: String(formData.get("name") ?? "").trim(),
+                    email,
+                    password,
+                    callbackURL: destination(),
+                })
+
+            if (result.error) {
+                setError(result.error.message || "Unable to sign in. Please try again.")
+            } else window.location.assign(destination())
+        } catch {
+            setError("Unable to sign in. Please check your connection and try again.")
+        } finally {
+            setLoading(false)
+        }
+    }
 
     async function handleGoogleLogin() {
         setLoading(true)
@@ -17,7 +56,7 @@ export default function LoginPage() {
 
         const { error } = await authClient.signIn.social({
             provider: "google",
-            callbackURL: "/",
+            callbackURL: destination(),
         })
 
         if (error) {
@@ -27,7 +66,7 @@ export default function LoginPage() {
     }
 
     return (
-        <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6">
+        <main className="relative flex min-h-dvh items-center justify-center overflow-x-hidden bg-background px-6 py-12">
             {/* Theme toggle */}
             <div className="absolute right-6 top-6">
                 <ThemeToggle />
@@ -53,7 +92,7 @@ export default function LoginPage() {
                         </h1>
 
                         <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
-                            Your personal English learning assistant.
+                            Your personal English learning companion.
                             Learn vocabulary, practice grammar, and improve
                             your English every day.
                         </p>
@@ -61,6 +100,58 @@ export default function LoginPage() {
 
                     {/* Login */}
                     <div className="space-y-4">
+                        <form onSubmit={handleCredentials} className="space-y-3">
+                            {mode === "signup" && (
+                                <input
+                                    name="name"
+                                    type="text"
+                                    autoComplete="name"
+                                    required
+                                    maxLength={80}
+                                    placeholder="Name"
+                                    aria-label="Name"
+                                    className="h-12 w-full rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                />
+                            )}
+                            <input
+                                name="email"
+                                type="email"
+                                autoComplete="email"
+                                required
+                                placeholder="Email"
+                                aria-label="Email"
+                                className="h-12 w-full rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            />
+                            <input
+                                name="password"
+                                type="password"
+                                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                                required
+                                minLength={8}
+                                placeholder="Password (at least 8 characters)"
+                                aria-label="Password"
+                                className="h-12 w-full rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            />
+                            <Button type="submit" className="h-12 w-full cursor-pointer" disabled={loading}>
+                                {loading && <Loader2 className="size-4 animate-spin" />}
+                                {mode === "signin" ? "Sign in with email" : "Create account"}
+                            </Button>
+                        </form>
+
+                        <button
+                            type="button"
+                            className="w-full cursor-pointer text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                            onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null) }}
+                        >
+                            {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
+                        </button>
+
+                        <div className="flex items-center gap-3 py-1 text-xs text-muted-foreground">
+                            <div className="h-px flex-1 bg-border" />
+                            OR
+                            <div className="h-px flex-1 bg-border" />
+                        </div>
+
                         <Button
                             type="button"
                             variant="outline"
@@ -108,7 +199,7 @@ export default function LoginPage() {
                     </div>
 
                     <p className="mt-8 text-center text-xs leading-5 text-muted-foreground">
-                        Continue with Google to start learning with Lexi.
+                        Sign in with your email and password or continue with Google.
                     </p>
                 </div>
 

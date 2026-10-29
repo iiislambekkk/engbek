@@ -1,0 +1,37 @@
+#lexi-selection-panel,
+#lexi-selection-panel * { box-sizing: border-box; }
+#lexi-selection-panel {
+  position: fixed; z-index: 2147483647; width: 344px; max-width: calc(100vw - 24px); max-height: min(560px, calc(100vh - 24px)); overflow-y: auto;
+  padding: 12px; border: 1px solid hsl(214 20% 88%); border-radius: 14px; background: hsl(0 0% 100%); color: hsl(222 47% 11%);
+  box-shadow: 0 12px 40px rgb(15 23 42 / 18%); font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-align: left; color-scheme: light;
+}
+#lexi-selection-panel .lexi-head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 10px; }
+#lexi-selection-panel .lexi-brand { display: inline-flex; align-items: center; gap: 7px; color: hsl(222 47% 11%); font-size: 13px; font-weight: 700; letter-spacing: -.02em; }
+#lexi-selection-panel .lexi-brand-mark { display: grid; width: 23px; height: 23px; place-items: center; border-radius: 7px; background: hsl(221 83% 53%); color: white; font-size: 12px; }
+#lexi-selection-panel .lexi-close { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: hsl(215 16% 47%); cursor: pointer; }
+#lexi-selection-panel .lexi-close:hover { background: hsl(210 40% 96%); color: hsl(222 47% 11%); }
+#lexi-selection-panel svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#lexi-selection-panel .lexi-selected { max-height: 90px; overflow: auto; padding: 10px 11px; border: 1px solid hsl(214 20% 91%); border-radius: 10px; background: hsl(210 40% 98%); color: hsl(222 47% 11%); font-size: 13px; font-weight: 600; line-height: 1.55; overflow-wrap: anywhere; }
+#lexi-selection-panel .lexi-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 10px; }
+#lexi-selection-panel .lexi-action { display: flex; min-width: 0; min-height: 54px; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 7px 3px; border: 1px solid hsl(214 20% 90%); border-radius: 10px; background: hsl(0 0% 100%); color: hsl(215 16% 36%); cursor: pointer; font: inherit; }
+#lexi-selection-panel .lexi-action span { overflow: hidden; width: 100%; font-size: 10px; line-height: 1.2; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+#lexi-selection-panel .lexi-action:hover { border-color: hsl(221 83% 80%); background: hsl(221 83% 98%); color: hsl(221 83% 45%); }
+#lexi-selection-panel .lexi-primary { border-color: hsl(221 83% 53%); background: hsl(221 83% 53%); color: white; }
+#lexi-selection-panel .lexi-primary:hover { border-color: hsl(221 83% 45%); background: hsl(221 83% 45%); color: white; }
+#lexi-selection-panel button:disabled { opacity: .55; cursor: wait; }
+#lexi-selection-panel .lexi-status { display: none; padding: 8px 2px 0; color: hsl(215 16% 47%); font-size: 11px; }
+#lexi-selection-panel .lexi-visible { display: block; }
+#lexi-selection-panel .lexi-error { color: hsl(0 72% 51%); }
+#lexi-selection-panel .lexi-result { display: grid; gap: 8px; padding: 11px 2px 2px; }
+#lexi-selection-panel .lexi-translation { color: hsl(221 83% 45%); font-size: 18px; font-weight: 700; }
+#lexi-selection-panel .lexi-meaning { color: hsl(222 47% 11%); font-size: 13px; font-weight: 600; }
+#lexi-selection-panel .lexi-context-translation, #lexi-selection-panel .lexi-usage { color: hsl(215 16% 40%); font-size: 12px; line-height: 1.5; }
+#lexi-selection-panel .lexi-other-meanings { padding-top: 8px; border-top: 1px solid hsl(214 20% 91%); }
+#lexi-selection-panel .lexi-section-title { padding: 8px 2px 5px; color: hsl(215 16% 47%); font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+#lexi-selection-panel .lexi-other-item { padding: 3px 2px; color: hsl(215 16% 36%); font-size: 12px; }
+#lexi-selection-panel .lexi-choices { display: grid; gap: 5px; padding-top: 5px; }
+#lexi-selection-panel .lexi-choice { display: grid; gap: 2px; width: 100%; padding: 9px 10px; border: 1px solid hsl(214 20% 90%); border-radius: 9px; background: white; color: hsl(222 47% 11%); cursor: pointer; font: inherit; text-align: left; }
+#lexi-selection-panel .lexi-choice:hover { border-color: hsl(221 83% 75%); background: hsl(221 83% 98%); }
+#lexi-selection-panel .lexi-choice-term { font-size: 12px; font-weight: 650; }
+#lexi-selection-panel .lexi-choice-description { color: hsl(215 16% 47%); font-size: 11px; }
+#lexi-selection-panel .lexi-choice-custom { display: block; color: hsl(221 83% 45%); font-size: 12px; font-weight: 600; }

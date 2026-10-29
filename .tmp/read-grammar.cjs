@@ -1,0 +1,1 @@
+﻿const Database = require("better-sqlite3"); const db=new Database("dev.db",{readonly:true}); const x=db.prepare("SELECT grammar FROM VocabularyItem WHERE term=?").get("devoured"); console.log(JSON.stringify(JSON.parse(x.grammar),null,2)); db.close();

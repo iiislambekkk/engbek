@@ -9,6 +9,11 @@ export const auth = betterAuth({
     }),
 
     baseURL: process.env.BETTER_AUTH_URL,
+    trustedOrigins: ["http://192.168.8.63:3000", "http://10.86.28.84:3000"],
+
+    emailAndPassword: {
+        enabled: true,
+    },
 
     socialProviders: {
         google: {

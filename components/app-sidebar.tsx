@@ -4,6 +4,10 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
     BookOpen,
+    BookOpenText,
+    House,
+    MonitorPlay,
+    Settings,
     Sparkles,
 } from "lucide-react"
 
@@ -20,11 +24,15 @@ import {
 } from "@/components/ui/sidebar"
 
 const mainNavigation = [
+    { title: "Home", href: "/", icon: House },
     {
         title: "Vocabulary",
-        href: "/",
+        href: "/vocabulary",
         icon: BookOpen,
     },
+    { title: "Read", href: "/read", icon: BookOpenText },
+    { title: "Watch", href: "/watch", icon: MonitorPlay },
+    { title: "Settings", href: "/settings", icon: Settings },
 ]
 
 export function AppSidebar() {
@@ -68,9 +76,9 @@ export function AppSidebar() {
                             {mainNavigation.map((item) => {
                                 const Icon = item.icon
 
-                                const active =
-                                    pathname === item.href ||
-                                    pathname.startsWith(`${item.href}/`)
+                                const active = item.href === "/"
+                                    ? pathname === "/"
+                                    : pathname === item.href || pathname.startsWith(`${item.href}/`)
 
                                 return (
                                     <SidebarMenuItem key={item.href}>

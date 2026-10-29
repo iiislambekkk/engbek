@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Lexi Selection",
+  "version": "1.0.0",
+  "description": "Save selected words from any website to your Lexi vocabulary.",
+  "permissions": ["storage", "activeTab", "contextMenus"],
+  "host_permissions": ["http://localhost:3000/*", "https://*/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{ "matches": ["http://*/*", "https://*/*"], "js": ["content.js"], "css": ["content.css"] }],
+  "action": { "default_title": "Lexi Selection", "default_popup": "popup.html" }
+}

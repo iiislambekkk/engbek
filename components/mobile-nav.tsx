@@ -4,14 +4,22 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
     BookOpen,
+    BookOpenText,
+    House,
+    MonitorPlay,
+    Settings,
 } from "lucide-react"
 
 const navigation = [
+    { title: "Home", href: "/", icon: House },
     {
         title: "Vocabulary",
-        href: "/",
+        href: "/vocabulary",
         icon: BookOpen,
     },
+    { title: "Read", href: "/read", icon: BookOpenText },
+    { title: "Watch", href: "/watch", icon: MonitorPlay },
+    { title: "Settings", href: "/settings", icon: Settings },
 ]
 
 export function MobileNav() {
@@ -23,15 +31,15 @@ export function MobileNav() {
                 {navigation.map((item) => {
                     const Icon = item.icon
 
-                    const active =
-                        pathname === item.href ||
-                        pathname.startsWith(`${item.href}/`)
+                    const active = item.href === "/"
+                        ? pathname === "/"
+                        : pathname === item.href || pathname.startsWith(`${item.href}/`)
 
                     return (
                         <Link
                             key={item.href}
                             href={item.href}
-                            className={`flex min-w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-md py-1.5 text-xs transition-colors ${
+                            className={`flex min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-1 rounded-md py-1.5 text-xs transition-colors ${
                                 active
                                     ? "font-medium text-foreground"
                                     : "text-muted-foreground"

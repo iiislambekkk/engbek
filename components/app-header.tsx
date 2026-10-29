@@ -1,6 +1,7 @@
 "use client"
 
-import { LogOut, Sparkles, User } from "lucide-react"
+import { LogOut, Settings, User } from "lucide-react"
+import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
 import { authClient } from "@/lib/auth-client"
@@ -19,7 +20,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const pageTitles = [
-    { href: "/", title: "Vocabulary" },
+    { href: "/watch", title: "Watch" },
+    { href: "/", title: "Home" },
+    { href: "/vocabulary", title: "Vocabulary" },
+    { href: "/settings", title: "Settings" },
 ]
 
 function getInitials(name: string) {
@@ -38,10 +42,7 @@ export function AppHeader() {
     const { data: session } = authClient.useSession()
 
     const currentPage =
-        pageTitles.find(
-            (page) =>
-                page.href === "/" && pathname === "/"
-        )?.title ?? "Lexi"
+        pageTitles.find((page) => page.href === pathname || (page.href !== "/" && pathname.startsWith(`${page.href}/`)))?.title ?? "Engbek"
 
     const handleLogout = async () => {
         await authClient.signOut()
@@ -73,15 +74,6 @@ export function AppHeader() {
             </span>
 
             <div className="ml-auto flex items-center gap-3">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="hidden cursor-pointer sm:flex"
-                >
-                    <Sparkles className="mr-2 size-4" />
-                    Ask AI
-                </Button>
-
                 <ThemeToggle />
 
                 <DropdownMenu>
@@ -140,6 +132,11 @@ export function AppHeader() {
                         </div>
 
                         <DropdownMenuSeparator />
+
+                        <DropdownMenuItem render={<Link href="/settings" />} className="cursor-pointer">
+                            <Settings className="mr-2 size-4" />
+                            Settings
+                        </DropdownMenuItem>
 
                         <DropdownMenuItem
                             onClick={handleLogout}

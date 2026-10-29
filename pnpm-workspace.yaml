@@ -2,6 +2,8 @@ allowBuilds:
   '@prisma/client': false
   '@prisma/engines': false
   better-sqlite3: false
+  core-js: true
+  es5-ext: true
   esbuild: false
   msgpackr-extract: false
   prisma: false

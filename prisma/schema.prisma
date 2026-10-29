@@ -28,9 +28,18 @@ model User {
 
   // Engbek
   settings   UserSettings?
+  chatgptAuthAttempts ChatGptAuthAttempt[]
   vocabulary VocabularyItem[]
   tags       Tag[]
-  chats      Chat[]
+  watchDevices WatchDevice[]
+  watchSessions WatchSession[]
+  watchMedia WatchMedia[]
+  watchExpressions WatchExpression[]
+  watchExplanations WatchExplanation[]
+  markedItems MarkedItem[]
+  translationEntries TranslationEntry[]
+  readDocuments ReadDocument[]
+  readBookLists ReadBookList[]
 }
 
 
@@ -108,43 +117,338 @@ model UserSettings {
   id     String @id @default(cuid())
   userId String @unique
 
-  autoAddVocabulary Boolean @default(false)
+  watchHighlightColor String @default("#a78bfa")
+  aiConnection String @default("none")
+  encryptedApiKey String?
+  chatgptSubject String?
+  chatgptEmail String?
+  chatgptClientId String?
+  encryptedIdToken String?
+  encryptedAccessToken String?
+  encryptedRefreshToken String?
+  accessTokenExpiresAt DateTime?
+  chatgptScopes String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model ChatGptAuthAttempt {
+  stateHash String @id
+  userId String
+  verifier String
+  nonce String
+  redirectUri String
+  returnOrigin String
+  clientId String
+  expiresAt DateTime
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
 
-// ============================================================
-// AI CHAT
-// ============================================================
+model ChatGptHost {
+  id String @id
+  hostId String @unique
+}
 
-model Chat {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String   @default("New chat")
+model WatchPairing {
+  id String @id
+  code String @unique
+  tokenHash String @unique
+  name String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  approvedAt DateTime?
+}
+
+model WatchDevice {
+  id String @id @default(cuid())
+  userId String
+  tokenHash String @unique
+  name String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  lastSeenAt DateTime?
+  revokedAt DateTime?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions WatchSession[]
+  @@index([userId])
+}
+
+model WatchSession {
+  id String @id @default(cuid())
+  userId String
+  deviceId String
+  clientSessionId String
+  source String
+  sourceId String
+  title String
+  url String
+  thumbnail String?
+  durationMs Int?
+  imdbId String?
+  season Int?
+  episode Int?
+  positionMs Int @default(0)
+  state String @default("paused")
+  sequence Int @default(-1)
+  mediaId String?
+  media WatchMedia? @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  capturedAt DateTime?
+  playbackRate Float @default(1)
+  activeTrack String?
+  activeKeys String @default("[]")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages ChatMessage[]
-
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device WatchDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  cues WatchCue[]
+  @@unique([deviceId, clientSessionId])
   @@index([userId, updatedAt])
 }
 
-model ChatMessage {
-  id         String   @id @default(cuid())
-  externalId String
-  chatId     String
-  role       String
-  message    Json
-  position   Int
-  createdAt  DateTime @default(now())
+model WatchCue {
+  id String @id @default(cuid())
+  sessionId String
+  cueKey String
+  track String
+  language String?
+  text String
+  startMs Int
+  endMs Int
+  approximate Boolean @default(false)
+  revision Int @default(0)
+  lineId String?
+  line WatchLine? @relation(fields: [lineId], references: [id], onDelete: SetNull)
+  session WatchSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  @@unique([sessionId, cueKey])
+  @@index([sessionId, startMs])
+}
 
-  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+model WatchMedia {
+  id String @id @default(cuid())
+  userId String
+  source String
+  sourceId String
+  title String
+  url String
+  thumbnail String?
+  durationMs Int?
+  imdbId String?
+  season Int?
+  episode Int?
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions WatchSession[]
+  tracks WatchTrack[]
+  expressions WatchExpression[]
+  explanations WatchExplanation[]
+  @@unique([userId, source, sourceId])
+  @@index([userId, updatedAt])
+}
 
-  @@unique([chatId, externalId])
-  @@unique([chatId, position])
-  @@index([chatId, createdAt])
+model WatchTrack {
+  id String @id @default(cuid())
+  mediaId String
+  key String
+  language String?
+  media WatchMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  lines WatchLine[]
+  @@unique([mediaId, key])
+}
+
+model WatchLine {
+  id String @id @default(cuid())
+  trackId String
+  key String
+  text String
+  startMs Int
+  endMs Int
+  approximate Boolean @default(false)
+  bookmarked Boolean @default(false)
+  updatedAt DateTime @updatedAt
+  track WatchTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  receipts WatchCue[]
+  expressions WatchExpression[]
+  explanations WatchExplanation[]
+  @@unique([trackId, key])
+  @@index([trackId, startMs])
+}
+
+model WatchExpression {
+  id String @id @default(cuid())
+  userId String
+  mediaId String
+  lineId String
+  sessionId String?
+  text String
+  context String
+  startMs Int
+  endMs Int
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media WatchMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  line WatchLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  @@index([userId, mediaId, createdAt])
+}
+
+model WatchExplanation {
+  id String @id @default(cuid())
+  userId String
+  mediaId String
+  lineId String
+  text String
+  contextHash String
+  context String
+  explanation Json
+  chat Json @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media WatchMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  line WatchLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  @@unique([userId, mediaId, lineId, text, contextHash])
+  @@index([userId, mediaId, createdAt])
+}
+
+enum LearningSourceType {
+  WATCH
+  READ
+  VOCABULARY
+}
+
+enum ReadDocumentFormat {
+  EPUB
+}
+
+enum ReadBlockType {
+  HEADING
+  PARAGRAPH
+}
+
+enum ReadLocationType {
+  CFI
+}
+
+/// A user's private reading material and its extracted, ordered content.
+model ReadDocument {
+  id String @id @default(cuid())
+  userId String
+  title String
+  format ReadDocumentFormat
+  /// Private storage key/path. Keep uploaded files outside public/.
+  filePath String?
+  /// Original uploaded filename, when applicable.
+  originalFileName String?
+  author String?
+  description String?
+  publisher String?
+  publishedDate String?
+  isbn String?
+  language String?
+  coverPath String?
+  originalCoverPath String?
+  isFavorite Boolean @default(false)
+  mimeType String?
+  fileSizeBytes Int?
+  /// Extracted, normalized text for search and lightweight access.
+  extractedText String
+  /// EPUB CFI identifies the exact spine and content position.
+  positionType ReadLocationType?
+  positionCfi String?
+  positionPage Int?
+  positionBlockId String?
+  /// Optional percentage cache for library display.
+  progress Float @default(0)
+  metadata Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blocks ReadDocumentBlock[]
+  bookLists ReadBookListEntry[]
+  @@index([userId, updatedAt])
+}
+
+model ReadBookList {
+  id String @id @default(cuid())
+  userId String
+  name String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books ReadBookListEntry[]
+  @@unique([userId, name])
+  @@index([userId, updatedAt])
+}
+
+model ReadBookListEntry {
+  listId String
+  documentId String
+  addedAt DateTime @default(now())
+  list ReadBookList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  document ReadDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  @@id([listId, documentId])
+  @@index([documentId])
+}
+
+/// Stable, ordered addressable text units. PDF blocks can carry a page number;
+/// DOCX/EPUB blocks can carry a section identifier and heading hierarchy.
+model ReadDocumentBlock {
+  id String @id
+  documentId String
+  order Int
+  type ReadBlockType
+  text String
+  pageNumber Int?
+  sectionId String?
+  sectionTitle String?
+  headingLevel Int?
+  startOffset Int?
+  endOffset Int?
+  document ReadDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  @@unique([documentId, order])
+  @@index([documentId, pageNumber])
+  @@index([documentId, sectionId, order])
+}
+
+model MarkedItem {
+  id String @id @default(cuid())
+  userId String
+  kind String
+  text String
+  context String
+  sourceType LearningSourceType
+  sourceTitle String
+  sourceUrl String?
+  sourceId String?
+  locationLabel String?
+  locationValue Int?
+  locationAnchor String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, sourceType, createdAt])
+  @@index([userId, kind, createdAt])
+}
+
+model TranslationEntry {
+  id String @id @default(cuid())
+  userId String
+  text String
+  context String
+  sourceType LearningSourceType
+  sourceTitle String
+  sourceUrl String?
+  sourceId String?
+  locationLabel String?
+  locationValue Int?
+  locationAnchor String?
+  explanation Json
+  chat Json @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, updatedAt])
+  @@index([userId, sourceType, updatedAt])
 }
 
 
@@ -165,8 +469,13 @@ model VocabularyItem {
   pronunciation String?
 
   familiarity Familiarity @default(NEW)
+  reviewDueAt DateTime @default(now())
+  reviewInterval Int @default(0)
+  reviewEase Float @default(2.5)
+  reviewCount Int @default(0)
 
   notes String?
+  grammar Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -174,6 +483,7 @@ model VocabularyItem {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   meanings Meaning[]
+  chat VocabularyChat?
   sources  VocabularySource[]
   tags     VocabularyItemTag[]
 
@@ -182,7 +492,16 @@ model VocabularyItem {
   @@index([userId])
   @@index([userId, type])
   @@index([userId, familiarity])
+  @@index([userId, reviewDueAt])
   @@index([userId, normalizedTerm])
+}
+
+model VocabularyChat {
+  id String @id @default(cuid())
+  vocabularyId String @unique
+  messages Json @default("[]")
+  updatedAt DateTime @updatedAt
+  vocabulary VocabularyItem @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
 }
 
 
@@ -218,6 +537,9 @@ model Example {
   meaningId String
 
   text String
+
+  sourceTitle String?
+  sourceUrl String?
 
   source ExampleSource @default(AI_GENERATED)
 

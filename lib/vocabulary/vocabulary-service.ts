@@ -3,17 +3,20 @@ import {
     PartOfSpeech,
     VocabularyAddReason,
     VocabularyType,
+    Prisma,
 } from "@/app/generated/prisma"
 
 import { prisma } from "@/lib/prisma"
 
-import { normalizeVocabularyTerm } from "@/lib/ai/normalize"
+function normalizeVocabularyTerm(term: string): string {
+    return term.trim().toLocaleLowerCase("en-US").replace(/\s+/g, " ")
+}
 
 export type VocabularyMeaningInput = {
     definition: string
     translation?: string
     partOfSpeech?: PartOfSpeech
-    examples: string[]
+    examples: (string | { text: string; sourceTitle?: string; sourceUrl?: string })[]
 }
 
 export type AddVocabularyInput = {
@@ -22,6 +25,7 @@ export type AddVocabularyInput = {
     type: VocabularyType
     meanings: VocabularyMeaningInput[]
     notes?: string
+    grammar?: Prisma.InputJsonValue
     tags: string[]
     reason: VocabularyAddReason
     sourceId?: string
@@ -29,6 +33,10 @@ export type AddVocabularyInput = {
 
 function normalizeText(value: string) {
     return value.trim().toLocaleLowerCase("en-US")
+}
+
+function exampleInput(value: VocabularyMeaningInput["examples"][number]) {
+    return typeof value === "string" ? { text: value } : value
 }
 
 function meaningExists(
@@ -119,6 +127,7 @@ export async function addOrUpdateVocabulary(
                     type: input.type,
                     phonetic: input.phonetic?.trim() || null,
                     notes: input.notes ?? null,
+                    grammar: input.grammar,
 
                     meanings: {
                         create: input.meanings.map((meaning) => ({
@@ -128,15 +137,7 @@ export async function addOrUpdateVocabulary(
                             partOfSpeech:
                                 meaning.partOfSpeech ?? null,
 
-                            examples: {
-                                create: meaning.examples
-                                    .map((example) => example.trim())
-                                    .filter(Boolean)
-                                    .map((text) => ({
-                                        text,
-                                        source: ExampleSource.AI_GENERATED,
-                                    })),
-                            },
+                            examples: { create: meaning.examples.map(exampleInput).filter(example => example.text.trim()).map(example => ({ text: example.text.trim(), source: example.sourceTitle ? ExampleSource.AI_EXTRACTED : ExampleSource.AI_GENERATED, sourceTitle: example.sourceTitle, sourceUrl: example.sourceUrl })) },
                         })),
                     },
                 },
@@ -164,6 +165,9 @@ export async function addOrUpdateVocabulary(
                 0,
             )
         } else {
+            if (input.grammar !== undefined) {
+                await tx.vocabularyItem.update({ where: { id: item.id }, data: { grammar: input.grammar } })
+            }
             if (input.phonetic?.trim() && item.phonetic !== input.phonetic.trim()) {
                 await tx.vocabularyItem.update({
                     where: { id: item.id },
@@ -208,13 +212,7 @@ export async function addOrUpdateVocabulary(
                                 meaning.partOfSpeech ?? null,
 
                             examples: {
-                                create: meaning.examples
-                                    .map((example) => example.trim())
-                                    .filter(Boolean)
-                                    .map((text) => ({
-                                        text,
-                                        source: ExampleSource.AI_GENERATED,
-                                    })),
+                                create: meaning.examples.map(exampleInput).filter(example => example.text.trim()).map(example => ({ text: example.text.trim(), source: example.sourceTitle ? ExampleSource.AI_EXTRACTED : ExampleSource.AI_GENERATED, sourceTitle: example.sourceTitle, sourceUrl: example.sourceUrl })),
                             },
                         },
                     })
@@ -226,8 +224,8 @@ export async function addOrUpdateVocabulary(
                 }
 
                 for (const example of meaning.examples) {
-                    const normalizedExample =
-                        normalizeText(example)
+                    const exampleData = exampleInput(example)
+                    const normalizedExample = normalizeText(exampleData.text)
 
                     const alreadyExists =
                         existingMeaning.examples.some(
@@ -240,8 +238,10 @@ export async function addOrUpdateVocabulary(
                         await tx.example.create({
                             data: {
                                 meaningId: existingMeaning.id,
-                                text: example.trim(),
-                                source: ExampleSource.AI_GENERATED,
+                                text: exampleData.text.trim(),
+                                source: typeof example === "string" ? ExampleSource.AI_GENERATED : ExampleSource.AI_EXTRACTED,
+                                sourceTitle: exampleData.sourceTitle,
+                                sourceUrl: exampleData.sourceUrl,
                             },
                         })
 
@@ -322,5 +322,39 @@ export async function addOrUpdateVocabulary(
             addedMeaningCount,
             addedExampleCount,
         }
+    })
+}
+
+export async function findSimilarVocabulary(userId: string, term: string) {
+    const normalizedTerm = normalizeVocabularyTerm(term)
+    if (!normalizedTerm || normalizedTerm.includes(" ")) return []
+
+    // Catch common inflectional variants while keeping this deliberately
+    // conservative: the learner can still choose to save a separate entry.
+    const stems = new Set([normalizedTerm])
+    if (normalizedTerm.length > 4 && normalizedTerm.endsWith("ies")) stems.add(`${normalizedTerm.slice(0, -3)}y`)
+    if (normalizedTerm.length > 4 && normalizedTerm.endsWith("es")) stems.add(normalizedTerm.slice(0, -2))
+    if (normalizedTerm.length > 3 && normalizedTerm.endsWith("s") && !normalizedTerm.endsWith("ss")) stems.add(normalizedTerm.slice(0, -1))
+    if (normalizedTerm.length > 5 && normalizedTerm.endsWith("ing")) {
+        const stem = normalizedTerm.slice(0, -3)
+        stems.add(stem)
+        stems.add(`${stem}e`)
+        if (stem.length > 2 && stem.at(-1) === stem.at(-2)) stems.add(stem.slice(0, -1))
+    }
+    if (normalizedTerm.length > 4 && normalizedTerm.endsWith("ed")) {
+        const stem = normalizedTerm.slice(0, -2)
+        stems.add(stem)
+        stems.add(`${stem}e`)
+        if (stem.length > 2 && stem.at(-1) === stem.at(-2)) stems.add(stem.slice(0, -1))
+    }
+    if (normalizedTerm.length > 4 && normalizedTerm.endsWith("er")) stems.add(normalizedTerm.slice(0, -2))
+    if (normalizedTerm.length > 5 && normalizedTerm.endsWith("est")) stems.add(normalizedTerm.slice(0, -3))
+
+    const candidates = [...stems].filter(stem => stem.length >= 3 && stem !== normalizedTerm)
+    if (!candidates.length) return []
+    return prisma.vocabularyItem.findMany({
+        where: { userId, type: VocabularyType.WORD, normalizedTerm: { in: candidates } },
+        select: { id: true, term: true, type: true },
+        take: 5,
     })
 }
