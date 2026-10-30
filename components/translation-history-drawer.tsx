@@ -10,7 +10,7 @@ type ChatMessage = { role: "user" | "assistant"; content: string }
 type Explanation = { wordTranslation?: string; contextMeaning?: string; contextTranslation?: string; usage?: string; notes?: string; otherMeanings?: { meaning: string; translation: string; example: string; exampleTranslation: string }[] }
 export type TranslationHistoryEntry = { id: string; text: string; context: string; explanation: unknown; chat: unknown; sourceType: string; sourceTitle: string; locationLabel: string | null; locationValue: number | null }
 
-export function TranslationHistoryDrawer({ entry, onOpenChange, loading = false, requestError = "", overlayClassName, viewportClassName, contentClassName }: { entry: TranslationHistoryEntry | null; onOpenChange: (open: boolean) => void; loading?: boolean; requestError?: string; overlayClassName?: string; viewportClassName?: string; contentClassName?: string }) {
+export function TranslationHistoryDrawer({ entry, open, onOpenChange, loading = false, requestError = "", overlayClassName, viewportClassName, contentClassName }: { entry: TranslationHistoryEntry | null; open?: boolean; onOpenChange: (open: boolean) => void; loading?: boolean; requestError?: string; overlayClassName?: string; viewportClassName?: string; contentClassName?: string }) {
   const [chat, setChat] = useState<ChatMessage[]>(() => Array.isArray(entry?.chat) ? entry.chat as ChatMessage[] : [])
   const [message, setMessage] = useState("")
   const [busy, setBusy] = useState(false)
@@ -43,7 +43,7 @@ export function TranslationHistoryDrawer({ entry, onOpenChange, loading = false,
     window.speechSynthesis.speak(utterance)
   }
 
-  return <Drawer open={!!entry} onOpenChange={onOpenChange} swipeDirection="down" showSwipeHandle overlayClassName={overlayClassName} viewportClassName={viewportClassName}>
+  return <Drawer open={open ?? !!entry} onOpenChange={onOpenChange} swipeDirection="down" showSwipeHandle overlayClassName={overlayClassName} viewportClassName={viewportClassName}>
     <DrawerContent className={`[--drawer-inset:0px] inset-x-0 bottom-0 m-0 flex h-[min(88dvh,54rem)] max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-xl rounded-b-none border-0 bg-background shadow-2xl ${contentClassName ?? ""}`}>
       <DrawerHeader className="shrink-0 border-b bg-background px-5 pb-4 pt-5 text-left sm:px-7">
         <DrawerTitle className="text-lg">Translation and usage</DrawerTitle>

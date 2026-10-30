@@ -304,10 +304,14 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
   const [vocabularyAddedSourceIds, setVocabularyAddedSourceIds] = useState<Set<string>>(() => new Set())
   const [vocabularyStatus, setVocabularyStatus] = useState("")
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingSubtitleClick = useRef<{ lineId: string; timer: ReturnType<typeof setTimeout> } | null>(null)
   const suppressSeek = useRef(false)
   const touchRange = useRef<{ line: Line; words: string[]; start: number } | null>(null)
   const selectionMenuRef = useRef<HTMLDivElement>(null)
   const resumePlayback = useRef(false)
+  useEffect(() => () => {
+    if (pendingSubtitleClick.current) clearTimeout(pendingSubtitleClick.current.timer)
+  }, [])
   useEffect(() => { setVocabularyStatus("") }, [selectionMenu?.line.id, selectionMenu?.text])
   useEffect(() => {
     const scroller = translationChatScroller.current
@@ -631,7 +635,18 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
   }
 
   function revealLine(lineId: string) {
+    resumePlayback.current = false
+    void sendCommand("pause")
     setRevealedLines(current => new Set(current).add(lineId))
+  }
+
+  function seekToSubtitle(line: Line) {
+    followingRef.current = true
+    setFollowing(true)
+    setSavedOnly(false)
+    setShowExpressions(false)
+    setShowHistory(false)
+    void sendCommand("seek", line.startMs)
   }
 
   useEffect(() => {
@@ -727,6 +742,7 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
                   if (pressTimer.current) clearTimeout(pressTimer.current)
                   if (event.pointerType === "mouse") { touchRange.current = null; stopFollowing() }
                   if (selectionMenu) return
+                  if (listeningMode && !revealedLines.has(line.id)) return
                   const selected = window.getSelection()?.toString().trim()
                   if (selected && event.currentTarget.contains(window.getSelection()?.anchorNode || null)) { suppressSeek.current = true; resumePlayback.current = session?.state === "playing"; setSelectionMenu({ line, text: selected }); void sendCommand("pause") }
                 }}
@@ -761,10 +777,29 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
                   if (pressTimer.current) clearTimeout(pressTimer.current)
                   touchRange.current = null
                   if (selectionMenu) return
+                  if (listeningMode && !revealedLines.has(line.id)) return
                   const selected = window.getSelection()?.toString().trim()
                   if (selected && event.currentTarget.contains(window.getSelection()?.anchorNode || null)) { suppressSeek.current = true; resumePlayback.current = session?.state === "playing"; setSelectionMenu({ line, text: selected }); void sendCommand("pause") }
                 }}
-                onClick={() => { if (selectionMenu || suppressSeek.current) { suppressSeek.current = false; return } followingRef.current = true; setFollowing(true); setSavedOnly(false); setShowExpressions(false); setShowHistory(false); void sendCommand("seek", line.startMs) }}
+                onClick={() => {
+                  if (selectionMenu || suppressSeek.current) { suppressSeek.current = false; return }
+                  if (listeningMode && !revealedLines.has(line.id)) {
+                    if (pendingSubtitleClick.current?.lineId === line.id) {
+                      clearTimeout(pendingSubtitleClick.current.timer)
+                      pendingSubtitleClick.current = null
+                      revealLine(line.id)
+                      return
+                    }
+                    if (pendingSubtitleClick.current) clearTimeout(pendingSubtitleClick.current.timer)
+                    const timer = setTimeout(() => {
+                      pendingSubtitleClick.current = null
+                      seekToSubtitle(line)
+                    }, 350)
+                    pendingSubtitleClick.current = { lineId: line.id, timer }
+                    return
+                  }
+                  seekToSubtitle(line)
+                }}
                 className="relative w-full cursor-pointer select-none touch-pan-y text-left">
                 <span className={`watch-subtitle-copy whitespace-pre-line break-words text-[clamp(1.25rem,4.2vw,2.25rem)] font-semibold leading-[1.4] tracking-tight transition-colors duration-200 ${listeningMode && !revealedLines.has(line.id) ? "watch-subtitle-hidden" : listeningMode ? "watch-subtitle-revealed" : ""} ${isActive ? "text-primary" : following && online ? "text-muted-foreground/65" : "text-foreground/85"}`}>{listeningMode && !revealedLines.has(line.id) ? line.text.replace(/\S/g, "*") : (() => { let wordIndex = -1; return line.text.split(/(\s+)/).map((piece, index) => {
                   if (/\s+/.test(piece)) return piece

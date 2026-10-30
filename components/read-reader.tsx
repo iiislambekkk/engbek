@@ -97,6 +97,8 @@ export function ReadReader({ document, initialMarks }: { document: ReadDocument;
   const [marks, setMarks] = useState(initialMarks)
   const [drawerEntry, setDrawerEntry] = useState<TranslationHistoryEntry | null>(null)
   const [drawerLoading, setDrawerLoading] = useState(false)
+  const [translationDrawerOpen, setTranslationDrawerOpen] = useState(false)
+  const [drawerError, setDrawerError] = useState("")
   const target = useRef<HTMLDivElement>(null)
   const renditionRef = useRef<Rendition | null>(null)
   const bookRef = useRef<ReturnType<typeof ePub> | null>(null)
@@ -318,6 +320,9 @@ export function ReadReader({ document, initialMarks }: { document: ReadDocument;
 
   async function translate(text: string) {
     if (!selection) return
+    setDrawerEntry(null)
+    setDrawerError("")
+    setTranslationDrawerOpen(true)
     setDrawerLoading(true)
     try {
       const markedResponse = await fetch("/api/learning-history", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "EXPRESSION", text, context: selection.context, source }) })
@@ -328,7 +333,7 @@ export function ReadReader({ document, initialMarks }: { document: ReadDocument;
       if (!response.ok) throw new Error(body.error || "Could not translate the selection.")
       setDrawerEntry(body.entry)
       setSelection(null)
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not translate the selection.") }
+    } catch (cause) { setDrawerError(cause instanceof Error ? cause.message : "Could not translate the selection.") }
     finally { setDrawerLoading(false) }
   }
 
@@ -417,6 +422,6 @@ export function ReadReader({ document, initialMarks }: { document: ReadDocument;
         </div>
       </DrawerContent>
     </Drawer>
-    <TranslationHistoryDrawer entry={drawerEntry} loading={drawerLoading} requestError="" overlayClassName="z-[110]" viewportClassName="z-[120]" contentClassName="z-[120]" onOpenChange={open=>{if(!open)setDrawerEntry(null)}}/>
+    <TranslationHistoryDrawer entry={drawerEntry} open={translationDrawerOpen} loading={drawerLoading} requestError={drawerError} overlayClassName="z-[110]" viewportClassName="z-[120]" contentClassName="z-[120]" onOpenChange={open=>{setTranslationDrawerOpen(open);if(!open)setDrawerEntry(null)}}/>
   </>, portalRoot)
 }
