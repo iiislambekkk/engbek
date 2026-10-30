@@ -22,6 +22,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useSidebar } from "@/components/ui/sidebar"
 
 const mainNavigation = [
     { title: "Home", href: "/", icon: House },
@@ -37,6 +38,7 @@ const mainNavigation = [
 
 export function AppSidebar() {
     const pathname = usePathname()
+    const { setOpenMobile } = useSidebar()
 
     return (
         <Sidebar collapsible="icon">
@@ -84,7 +86,7 @@ export function AppSidebar() {
                                     <SidebarMenuItem key={item.href}>
                                         <SidebarMenuButton
                                             render={
-                                                <Link href={item.href} />
+                                                <Link href={item.href} onClick={() => setOpenMobile(false)} />
                                             }
                                             isActive={active}
                                             tooltip={item.title}

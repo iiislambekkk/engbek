@@ -26,11 +26,12 @@ export function WatchSetup() {
     let timer: ReturnType<typeof setTimeout>
     const controller = new AbortController()
     async function load() {
+      setOrigin(window.location.origin)
       try {
         const response = await fetch("/api/watch", { cache: "no-store", signal: controller.signal })
         if (!response.ok) throw new Error("Could not load browser connections.")
         const result = await response.json() as Overview
-        if (!cancelled) { setData(result); setError(""); setOrigin(window.location.origin); setObservedAt(Date.now()) }
+        if (!cancelled) { setData(result); setError(""); setObservedAt(Date.now()) }
       } catch (cause) {
         if (!cancelled) { setError(cause instanceof Error ? cause.message : "Connection failed."); setObservedAt(Date.now()) }
       } finally {
@@ -60,7 +61,7 @@ export function WatchSetup() {
     <div className="space-y-4 rounded-2xl border bg-card p-5 sm:p-6">
       <h2 className="flex items-center gap-2 font-semibold"><Link2 className="size-5 text-primary" /> Connect your video browser</h2>
       <ol className="list-decimal space-y-3 pl-5 text-sm leading-6 text-muted-foreground">
-        <li>Install Tampermonkey on the computer where you watch videos, then <a className="font-medium text-primary underline" href="/lexi-watch.user.js">install the Lexi Watch script</a>.</li>
+        <li>Install Tampermonkey on the computer where you watch videos, then <a className="font-medium text-primary underline" href={origin ? `https://www.tampermonkey.net/script_installation.php#url=${origin}/lexi-watch.user.js` : "/lexi-watch.user.js"} target="_blank" rel="noopener noreferrer">send the Lexi Watch script to Tampermonkey</a> and confirm installation there.</li>
         <li>Open Stremio Web or YouTube, play a video, and enable a subtitle track. Click <strong>Send subtitles to Lexi</strong>.</li>
         <li>Use <code className="break-all rounded bg-muted px-1 text-foreground">{origin || "this site's address"}</code> as your Lexi address. Sign in and confirm the matching connection code.</li>
       </ol>

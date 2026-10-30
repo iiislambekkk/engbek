@@ -209,6 +209,10 @@ export function WatchLive() {
     return session && !["ended", "stopped"].includes(session.state) && Date.parse(data.serverTime) - Date.parse(session.capturedAt || session.updatedAt) < 15_000
   })
   const mediaId = selected || (!history ? active?.id : null)
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("watch-subtitle-reader", { detail: Boolean(mediaId) }))
+    return () => window.dispatchEvent(new CustomEvent("watch-subtitle-reader", { detail: false }))
+  }, [mediaId])
   if (mediaId) return <WatchReader key={mediaId} mediaId={mediaId} connected={connected} onBack={() => { setSelected(null); setHistory(true) }} />
 
   const visible = data?.media.filter(media => `${media.title} ${media.episodeTitle || ""}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
@@ -375,10 +379,19 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
   const lines = data?.lines ?? []
   const bookmarkedLineCount = data?.bookmarkedLineCount ?? lines.filter(line => line.bookmarked).length
   const activeIds = new Set(online && !["seeking", "waiting"].includes(session?.state || "") ? data?.activeLineIds : [])
-  const activeLines = lines.filter(line => online && (line.approximate ? activeIds.has(line.id) : line.startMs <= position && line.endMs > position))
-  const currentId = activeLines[0]?.id
+  const activeLine = lines.reduce<Line | null>((latest, line) => {
+    const isCurrent = online && (line.approximate ? activeIds.has(line.id) : line.startMs <= position && line.endMs > position)
+    if (!isCurrent) return latest
+    if (!latest || line.startMs > latest.startMs) return line
+    if (line.startMs === latest.startMs && line.endMs > latest.endMs) return line
+    if (line.startMs === latest.startMs && line.endMs === latest.endMs && (line.updatedAt || "") > (latest.updatedAt || "")) return line
+    return latest
+  }, null)
+  const activeLines = activeLine ? [activeLine] : []
+  const currentId = activeLine?.id
   const previous = [...lines].reverse().find(line => line.startMs <= position)
   const targetId = currentId || previous?.id
+  const targetLine = targetId ? lines.find(line => line.id === targetId) : null
   const visible = savedOnly ? lines.filter(line => line.bookmarked) : lines
 
   function followPlayback() {
@@ -414,8 +427,20 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
   useEffect(() => {
     if (!following || savedOnly || !anchor.current || !scroller.current || window.getSelection()?.toString()) return
     const box = scroller.current, target = anchor.current
-    box.scrollTo({ top: target.offsetTop - box.clientHeight * 0.34, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })
-  }, [targetId, following, savedOnly, visible.length])
+    const scrollToTarget = () => {
+      const boxRect = box.getBoundingClientRect()
+      const targetRect = target.getBoundingClientRect()
+      const targetTop = box.scrollTop + targetRect.top - boxRect.top - box.clientTop
+      const maxTop = Math.max(0, box.scrollHeight - box.clientHeight)
+      const top = Math.max(0, Math.min(maxTop, targetTop - box.clientHeight * 0.34))
+      box.scrollTo({ top, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+    }
+    const frame = requestAnimationFrame(scrollToTarget)
+    const observer = new ResizeObserver(scrollToTarget)
+    observer.observe(box)
+    observer.observe(target)
+    return () => { cancelAnimationFrame(frame); observer.disconnect() }
+  }, [targetId, targetLine?.text, following, savedOnly, visible.length])
 
   useEffect(() => {
     if (!navigationTargetId || showExpressions) return

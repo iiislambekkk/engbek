@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Lexi Watch — Stremio & YouTube
 // @namespace    lexi-watch
-// @version      1.3.3
+// @version      1.4.1
 // @description  Send played subtitles and video details to your Lexi account.
 // @match        https://web.stremio.com/*
 // @match        https://www.youtube.com/*
@@ -108,7 +108,15 @@
 
   const panel = document.createElement("div");
   panel.id = "lexi-watch-controls";
-  Object.assign(panel.style, { position: "fixed", bottom: "96px", right: "16px", zIndex: "2147483647", width: "250px", padding: "12px", borderRadius: "14px", background: "#181624", color: "#fff", font: "13px/1.5 system-ui, sans-serif", boxShadow: "0 4px 24px #0005" });
+  Object.assign(panel.style, { position: "fixed", bottom: "96px", right: "16px", zIndex: "2147483647", width: "250px", padding: "36px 12px 12px", borderRadius: "14px", background: "#181624", color: "#fff", font: "13px/1.5 system-ui, sans-serif", boxShadow: "0 4px 24px #0005" });
+  let controlsClosed = false;
+  const closeControls = document.createElement("button");
+  closeControls.type = "button";
+  closeControls.textContent = "×";
+  closeControls.setAttribute("aria-label", "Close Lexi Watch popup");
+  closeControls.title = "Close popup";
+  Object.assign(closeControls.style, { position: "absolute", top: "6px", right: "8px", width: "28px", height: "28px", border: "0", borderRadius: "7px", background: "transparent", color: "#d6d2e6", font: "24px/1 system-ui", cursor: "pointer" });
+  closeControls.addEventListener("click", () => { controlsClosed = true; panel.style.display = "none"; });
   const button = document.createElement("button");
   Object.assign(button.style, { width: "100%", padding: "10px", background: "#7b5bf5", color: "white", border: "none", borderRadius: "9px", cursor: "pointer", font: "600 13px system-ui" });
   const status = document.createElement("div");
@@ -119,15 +127,18 @@
   watch.target = "_blank";
   watch.rel = "noopener noreferrer";
   Object.assign(watch.style, { display: "block", marginTop: "8px", color: "#b9a6ff" });
-  panel.append(button, status, watch);
+  panel.append(closeControls, button, status, watch);
   document.body.append(panel);
   Object.assign(panel.style, { transition: "opacity 180ms ease, transform 180ms ease" });
   function message(text, urgent = false) {
     status.textContent = text;
     if (urgent) updateControls();
   }
-  function revealControls() { updateControls(); }
+  function revealControls() { if (!controlsClosed) updateControls(); }
+  function showControls() { controlsClosed = false; updateControls(); }
   function updateControls() {
+    if (controlsClosed) return;
+    panel.style.display = "";
     const video = getVideo();
     const hidePanel = video && !video.paused && !video.ended;
     panel.style.opacity = hidePanel ? "0" : "1";
@@ -141,7 +152,7 @@
   document.addEventListener("pointermove", revealControls, { passive: true });
   document.addEventListener("keydown", revealControls);
   document.addEventListener("fullscreenchange", revealControls);
-  GM_registerMenuCommand("Lexi: show controls", revealControls);
+  GM_registerMenuCommand("Lexi: show controls", showControls);
   setInterval(updateControls, 250);
   function labels() {
     button.textContent = pairing ? "Waiting for confirmation…" : active ? "Stop sending to Lexi" : "Send subtitles to Lexi";

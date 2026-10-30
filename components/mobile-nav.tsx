@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import {
     BookOpen,
@@ -24,9 +25,15 @@ const navigation = [
 
 export function MobileNav() {
     const pathname = usePathname()
-    const isWatchRoute = pathname === "/watch" || pathname.startsWith("/watch/")
+    const [subtitleReaderOpen, setSubtitleReaderOpen] = useState(false)
 
-    if (isWatchRoute) return null
+    useEffect(() => {
+        const update = (event: Event) => setSubtitleReaderOpen(Boolean((event as CustomEvent<boolean>).detail))
+        window.addEventListener("watch-subtitle-reader", update)
+        return () => window.removeEventListener("watch-subtitle-reader", update)
+    }, [])
+
+    if (pathname === "/watch" && subtitleReaderOpen) return null
 
     return (
         <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur lg:hidden">

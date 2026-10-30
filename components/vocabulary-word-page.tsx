@@ -123,7 +123,7 @@ export function VocabularyWordPage({ item: initialItem }: { item: Item }) {
             const response = await fetch(`/api/vocabulary/${item.id}`, { method: "DELETE" })
             const result = await response.json()
             if (!response.ok) throw new Error(result.error || "Could not delete this word.")
-            router.push("/")
+            router.push("/vocabulary")
             router.refresh()
         } catch (error) {
             setDeleteError(error instanceof Error ? error.message : "Could not delete this word.")
@@ -180,7 +180,7 @@ export function VocabularyWordPage({ item: initialItem }: { item: Item }) {
 
     return (
         <div className="mx-auto max-w-6xl space-y-3 pb-3">
-            <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+            <Link href="/vocabulary" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
                 <ArrowLeft className="size-3.5" /> Vocabulary
             </Link>
 
