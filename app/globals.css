@@ -192,3 +192,77 @@
 button {
   cursor: pointer;
 }
+
+@media (max-width: 1023px) {
+  main:has([data-watch-route]) {
+    padding-bottom: 0 !important;
+  }
+}
+
+@keyframes watch-dock-enter {
+  from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.98); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes watch-subtitle-enter {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.watch-control-dock {
+  animation: watch-dock-enter 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.watch-control-button,
+.watch-play-button {
+  transition: transform 160ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.watch-control-button:hover:not(:disabled),
+.watch-play-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.watch-control-button:active:not(:disabled),
+.watch-play-button:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.watch-listening-surface {
+  background-image: radial-gradient(ellipse at 50% 0%, color-mix(in oklab, var(--primary) 5%, transparent), transparent 58%);
+}
+
+.watch-subtitle-row {
+  transform-origin: center;
+}
+
+.watch-subtitle-active {
+  animation: watch-subtitle-enter 360ms ease both;
+}
+
+.watch-subtitle-active .watch-subtitle-copy {
+  text-shadow: 0 0 28px color-mix(in oklab, var(--primary) 20%, transparent);
+}
+
+.watch-subtitle-revealed {
+  animation: watch-subtitle-enter 280ms ease both;
+}
+
+.watch-subtitle-hidden {
+  color: var(--muted-foreground);
+  letter-spacing: 0.08em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .watch-control-dock,
+  .watch-subtitle-active,
+  .watch-subtitle-revealed {
+    animation: none;
+  }
+
+  .watch-control-button,
+  .watch-play-button {
+    transition: none;
+  }
+}

@@ -7,8 +7,8 @@ export function WatchBottomSpacer() {
     const isWatchRoute = pathname === "/watch" || pathname.startsWith("/watch/")
 
     if (isWatchRoute) {
-        return null
+        return <span aria-hidden="true" data-watch-route className="hidden" />
     }
 
-    return <div className="h-[40px] lg:h-0" />
+    return <div aria-hidden="true" className="h-[calc(4rem+env(safe-area-inset-bottom))] shrink-0 lg:h-0" />
 }

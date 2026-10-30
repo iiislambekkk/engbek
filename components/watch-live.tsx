@@ -5,7 +5,34 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
-import { ArrowLeft, ArrowDown, Bookmark, Captions, Check, ChevronRight, History, Link2, ListVideo, MonitorPlay, Radio, Search, WifiOff, Play, Pause, LoaderCircle, Languages, Volume2, X, LayoutGrid, List } from "lucide-react"
+import {
+  ArrowLeft,
+  ArrowDown,
+  Bookmark,
+  Captions,
+  Check,
+  ChevronRight,
+  History,
+  Link2,
+  ListVideo,
+  MonitorPlay,
+  Radio,
+  Search,
+  WifiOff,
+  Play,
+  Pause,
+  LoaderCircle,
+  Languages,
+  Volume2,
+  X,
+  LayoutGrid,
+  List,
+  Rewind,
+  FastForward,
+  Settings,
+  Ear,
+  ChevronDown
+} from "lucide-react"
 import { watchVocabularySourceId } from "@/lib/vocabulary/types"
 import { VocabularyAddDialog } from "@/components/vocabulary-add-dialog"
 import { SelectionMenu } from "@/components/selection-menu"
@@ -252,7 +279,11 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
   const [navigationTargetId, setNavigationTargetId] = useState<string | null>(null)
   const [bookmarkError, setBookmarkError] = useState("")
   const [videoStatusDismissed, setVideoStatusDismissed] = useState(false)
-  const [mobileControlsVisible, setMobileControlsVisible] = useState(false)
+  const [mobileInfoExpanded, setMobileInfoExpanded] = useState(false)
+  const [listeningMode, setListeningMode] = useState(false)
+  const [revealedLines, setRevealedLines] = useState<Set<string>>(() => new Set())
+  const [seekStep, setSeekStep] = useState(() => typeof window === "undefined" ? 10 : Number(window.localStorage.getItem("watch-seek-step") || 10))
+  const [controlsSettingsOpen, setControlsSettingsOpen] = useState(false)
   const [nearSubtitleEnd, setNearSubtitleEnd] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
@@ -569,6 +600,15 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
       }
   }
 
+  function seekBy(deltaSeconds: number) {
+    if (!session) return
+    void sendCommand("seek", Math.max(0, Math.min(session.durationMs ?? Number.MAX_SAFE_INTEGER, position + deltaSeconds * 1000)))
+  }
+
+  function revealLine(lineId: string) {
+    setRevealedLines(current => new Set(current).add(lineId))
+  }
+
   useEffect(() => {
     if (!selectionMenu) return
     const outside = (event: PointerEvent) => {
@@ -585,18 +625,18 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
   const currentSelectionSourceId = selectionMenu ? watchVocabularySourceId(mediaId, selectionMenu.line.startMs, currentSelectionText) : ""
   const currentSelectionInVocabulary = !!currentSelectionSourceId && vocabularyAddedSourceIds.has(currentSelectionSourceId)
 
-  return <section className="mx-auto flex h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] min-h-80 max-w-4xl flex-col lg:mx-0 lg:w-full lg:max-w-none lg:h-[calc(100dvh-7rem)]">
-    <div className={`mb-2 shrink-0 items-center justify-between gap-3 lg:hidden ${isPlayingLive && !mobileControlsVisible ? "hidden" : "flex"}`}><button onClick={onBack} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" /> Your videos</button><Link href="/watch/connect" aria-label="Browser connections" className="rounded-full p-1.5 text-muted-foreground hover:bg-muted"><Link2 className="size-4" /></Link></div>
+  return <section className="relative mx-auto flex h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] min-h-0 max-w-4xl flex-col overflow-hidden lg:mx-0 lg:w-full lg:max-w-none lg:h-[calc(100dvh-7rem)] lg:min-h-80">
     {!data ? <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">{error || "Loading subtitles…"}</div> : <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,34fr)_minmax(0,66fr)] lg:gap-6">
       <aside className="hidden min-h-0 flex-col rounded-2xl border bg-card p-5 lg:flex">
         <div className="flex items-center justify-between"><button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Your videos</button><Link href="/watch/connect" aria-label="Browser connections" className="rounded-full p-2 text-muted-foreground hover:bg-muted"><Link2 className="size-4" /></Link></div>
-        <div className="mt-6 flex min-h-0 items-start gap-4"><Cover media={{ ...data.media, thumbnail: data.media.episodeThumbnail || data.media.thumbnail }} poster /><div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{data.media.mediaType === "series" ? "TV Series" : data.media.mediaType === "movie" ? "Movie" : data.media.source}{data.media.year ? ` · ${data.media.year}` : ""}</p><h1 className="mt-1 line-clamp-3 text-lg font-semibold leading-snug">{data.media.title}</h1>{data.media.mediaType === "series" && (data.media.episodeTitle || data.media.season != null) && <p className="mt-1 text-xs text-muted-foreground">{data.media.season != null ? `Season ${data.media.season}${data.media.episode != null ? ` · Episode ${data.media.episode}` : ""}` : ""}{data.media.episodeTitle ? `${data.media.season != null ? " · " : ""}${data.media.episodeTitle}` : ""}</p>}{(data.media.episodeOverview || data.media.overview) && <p className="mt-2 line-clamp-6 text-left text-xs leading-5 text-muted-foreground">{data.media.episodeOverview || data.media.overview}</p>}<p className="mt-3 text-xs tabular-nums text-muted-foreground">{time(position)}{data.media.durationMs ? ` / ${time(data.media.durationMs)}` : ""}</p><button aria-label={session?.state === "paused" ? "Play video" : "Pause video"} disabled={!online || !connected} onClick={() => void sendCommand(session?.state === "paused" ? "play" : "pause")} className="mt-4 flex size-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md disabled:opacity-40">{session?.state === "paused" ? <Play className="size-5" /> : <Pause className="size-5" />}</button></div></div>
+        <div className="mt-6 flex min-h-0 items-start gap-4"><Cover media={{ ...data.media, thumbnail: data.media.episodeThumbnail || data.media.thumbnail }} poster /><div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{data.media.mediaType === "series" ? "TV Series" : data.media.mediaType === "movie" ? "Movie" : data.media.source}{data.media.year ? ` · ${data.media.year}` : ""}</p><h1 className="mt-1 line-clamp-3 text-lg font-semibold leading-snug">{data.media.title}</h1>{data.media.mediaType === "series" && (data.media.episodeTitle || data.media.season != null) && <p className="mt-1 text-xs text-muted-foreground">{data.media.season != null ? `Season ${data.media.season}${data.media.episode != null ? ` · Episode ${data.media.episode}` : ""}` : ""}{data.media.episodeTitle ? `${data.media.season != null ? " · " : ""}${data.media.episodeTitle}` : ""}</p>}{(data.media.episodeOverview || data.media.overview) && <p className="mt-2 line-clamp-6 text-left text-xs leading-5 text-muted-foreground">{data.media.episodeOverview || data.media.overview}</p>}<p className="mt-3 text-xs tabular-nums text-muted-foreground">{time(position)}{data.media.durationMs ? ` / ${time(data.media.durationMs)}` : ""}</p></div></div>
         <div className="mt-8 space-y-2 border-t pt-5"><div className="flex items-center gap-2 text-xs text-muted-foreground">{connected ? <Radio className="size-3.5 text-primary" /> : <WifiOff className="size-3.5" />}<span>{connected ? "Server connection active" : "Connecting to server…"}</span></div>{!online && !videoStatusDismissed && <div className="flex items-start justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground"><span>Stremio is not connected. Open Stremio with the Tampermonkey script enabled to sync playback. Saved subtitles are still available for offline review.</span><button type="button" aria-label="Dismiss video status" onClick={() => setVideoStatusDismissed(true)} className="-mr-1 -mt-1 shrink-0 rounded p-1 hover:bg-background"><X className="size-3.5" /></button></div>}{data.media.tracks.length > 1 && <select aria-label="Subtitle track" value={track || data.trackId || ""} onChange={event => { setTrack(event.target.value); setFollowing(false) }} className="w-full rounded-lg bg-muted px-2 py-2 text-xs">{data.media.tracks.map((item, index) => <option key={item.id} value={item.id}>{item.language || `Track ${index + 1}`}</option>)}</select>}</div>
     <div className="mt-auto flex flex-col gap-2 border-t pt-5"><button aria-pressed={!showExpressions && !savedOnly && !showHistory} onClick={() => { setShowExpressions(false); setSavedOnly(false); setShowHistory(false); setFollowing(true) }} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm ${!showExpressions && !savedOnly && !showHistory ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Captions className="size-4" /> Subtitles <span className="ml-auto">{lines.length}</span></button><button aria-pressed={showExpressions} onClick={() => { setShowExpressions(true); setSavedOnly(false); setShowHistory(false); setFollowing(false) }} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm ${showExpressions ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Bookmark className="size-4" /> Marked <span className="ml-auto">{expressions.length}</span></button><button aria-pressed={savedOnly} onClick={() => { setSavedOnly(true); setShowExpressions(false); setShowHistory(false); setFollowing(false) }} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm ${savedOnly ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><ListVideo className="size-4" /> Lines <span className="ml-auto">{bookmarkedLineCount}</span></button><button aria-pressed={showHistory} onClick={() => { setShowHistory(true); setShowExpressions(false); setSavedOnly(false); setFollowing(false) }} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm ${showHistory ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><History className="size-4" /> Translation and usage history <span className="ml-auto">{translationHistory.length}</span></button></div>
       </aside>
       <div className="flex min-h-0 flex-1 flex-col lg:min-w-0 lg:rounded-2xl lg:border lg:bg-card lg:px-6">
-      <header className={`${isPlayingLive && !mobileControlsVisible ? "hidden" : "flex"} shrink-0 items-center gap-2 border-b pb-2 sm:gap-3 lg:hidden`}>
-        <Cover media={data.media} large />
+      <div className="flex h-6 shrink-0 items-center justify-between lg:hidden"><button type="button" onClick={onBack} aria-label="Your videos" title="Your videos" className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 transition-colors hover:text-foreground"><ArrowLeft className="size-3" />Your videos</button><button type="button" aria-label={mobileInfoExpanded ? "Collapse video information" : "Expand video information"} aria-expanded={mobileInfoExpanded} onClick={() => setMobileInfoExpanded(value => !value)} className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><ChevronDown className={`size-4 transition-transform duration-200 ${mobileInfoExpanded ? "rotate-180" : ""}`} /></button></div>
+      <header className={`${mobileInfoExpanded ? "flex" : "hidden"} shrink-0 items-center gap-2 border-b pb-2 sm:gap-3 lg:hidden`}>
+        {mobileInfoExpanded && <Cover media={data.media} large />}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
             <span>{data.media.source}</span>
@@ -607,15 +647,13 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
           <h1 className="mt-0.5 line-clamp-1 text-sm font-semibold leading-snug tracking-tight sm:text-lg">
             {data.media.title}
           </h1>
-          <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
-            {time(position)}{data.media.durationMs ? ` / ${time(data.media.durationMs)}` : ""}
-          </p>
-          <div className="flex min-w-0 items-center gap-1.5 text-[10px] text-muted-foreground">
+          {mobileInfoExpanded && data.media.mediaType === "series" && data.media.episodeTitle && <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">{data.media.episodeTitle}</p>}
+          {mobileInfoExpanded && (data.media.episodeOverview || data.media.overview) && <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-muted-foreground">{data.media.episodeOverview || data.media.overview}</p>}
+          {mobileInfoExpanded && <p className="mt-1 text-[10px] tabular-nums text-muted-foreground">{time(position)}{data.media.durationMs ? ` / ${time(data.media.durationMs)}` : ""}</p>}
+          {mobileInfoExpanded && <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[10px] text-muted-foreground">
             {connected ? <Radio className="size-3 shrink-0 text-primary" /> : <WifiOff className="size-3 shrink-0" />}<span>{connected ? "Server connected" : "Server reconnecting"}</span>{data.media.tracks.length > 1 && <select aria-label="Subtitle track" value={track || data.trackId || ""} onChange={event => { setTrack(event.target.value); setFollowing(false) }} className="max-w-28 rounded-lg bg-muted px-1.5 py-1 text-[10px]">{data.media.tracks.map((item, index) => <option key={item.id} value={item.id}>{item.language || `Track ${index + 1}`}</option>)}</select>}
-          </div>
+          </div>}
         </div>
-        <button aria-label={session?.state === "paused" ? "Play video" : "Pause video"} disabled={!online || !connected} onClick={() => void sendCommand(session?.state === "paused" ? "play" : "pause")} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"><span className="sr-only">{session?.state === "paused" ? "Play video" : "Pause video"}</span>{session?.state === "paused" ? <Play className="size-4" /> : <Pause className="size-4" />}
-        </button>
       </header>
       <div className={`${isPlayingLive ? "hidden" : "flex"} shrink-0 items-center justify-between gap-2 border-b py-1.5 lg:hidden`}>
 
@@ -623,17 +661,17 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
       </div>
       {(error || bookmarkError) && <p role="alert" className="py-2 text-xs text-destructive">{bookmarkError || error}</p>}
       <div className="relative min-h-0 flex-1">
-        <div ref={scroller} tabIndex={0} aria-label="Subtitles" onScroll={() => { setMobileControlsVisible(true); updateSubtitleEnd() }} onWheel={stopFollowing} onTouchMove={stopFollowing} onPointerDown={event => { if (event.pointerType === "mouse") stopFollowing() }} onKeyDown={event => { if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "].includes(event.key)) stopFollowing() }} onMouseUp={() => { if (window.getSelection()?.toString()) { stopFollowing(); captureNativeSelection() } }} className="relative h-full overflow-y-auto overscroll-contain scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div ref={scroller} tabIndex={0} aria-label="Subtitles" onScroll={updateSubtitleEnd} onWheel={stopFollowing} onTouchMove={stopFollowing} onPointerDown={event => { if (event.pointerType === "mouse") stopFollowing() }} onKeyDown={event => { if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "].includes(event.key)) stopFollowing() }} onMouseUp={() => { if (window.getSelection()?.toString()) { stopFollowing(); captureNativeSelection() } }} className={`relative h-full overflow-y-auto overscroll-contain scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${listeningMode ? "watch-listening-surface" : ""}`}>
           {showHistory ? <div className="space-y-3 pb-20 pt-4">{translationHistory.length ? translationHistory.map(item => <button key={item.id} type="button" onClick={() => openTranslationHistory(item)} className="block w-full rounded-xl border p-4 text-left transition-colors hover:bg-muted/50"><span className="block font-semibold text-primary">{item.text}</span><span className="mt-2 block text-sm text-muted-foreground">{item.line.text}</span><span className="mt-2 block text-xs text-muted-foreground">{time(item.line.startMs)} · {new Date(item.updatedAt).toLocaleDateString()}</span></button>) : <p className="py-16 text-center text-sm text-muted-foreground">Expressions you translate and explain will appear here.</p>}</div> : showExpressions ? <div className="space-y-3 overflow-y-auto pb-20 pt-4">{expressions.length ? expressions.map(expression => {
             const sourceLine: Line = { id: expression.lineId, text: expression.context, startMs: expression.startMs, endMs: expression.endMs, approximate: false, bookmarked: false }
             const vocabularySourceId = watchVocabularySourceId(mediaId, expression.startMs, expression.text)
             const alreadyInVocabulary = expression.inVocabulary || vocabularyAddedSourceIds.has(vocabularySourceId)
             return <article key={expression.id} className="rounded-xl border p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-left font-semibold text-primary">{expression.text}</p><p className="mt-2 text-sm text-muted-foreground">{expression.context}</p><p className="mt-1 text-xs text-muted-foreground">{data.media.title} · {time(expression.startMs)}</p></div><div className="flex flex-wrap justify-end gap-2"><button type="button" aria-label="Translation and usage" title="Translation and usage" onClick={event => { event.stopPropagation(); void explainExpression(sourceLine, expression.text) }} className="rounded-full bg-muted p-2"><Languages className="size-4" /></button><button type="button" aria-label="Open subtitle at this moment" title="Open subtitle at this moment" onClick={event => { event.stopPropagation(); openSubtitleMoment(expression.lineId, expression.startMs) }} className="rounded-full bg-muted p-2"><Captions className="size-4" /></button>{alreadyInVocabulary ? <span className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 text-xs text-primary"><Check className="size-3" />In Vocabulary</span> : <VocabularyAddDialog key={vocabularySourceId} term={expression.text} context={expression.context} source={{ title: data.media.title, id: vocabularySourceId }} triggerClassName="h-8" onAdded={savedTerm => { setVocabularyAddedSourceIds(current => new Set(current).add(vocabularySourceId)); setVocabularyStatus(`Saved “${savedTerm}” to Vocabulary`) }} />}<button type="button" aria-label="Remove marked expression" onClick={async () => { const response = await fetch(`/api/watch/expressions?id=${encodeURIComponent(expression.id)}`, { method: "DELETE" }); if (response.ok) setExpressions(current => current.filter(item => item.id !== expression.id)) }} className="px-2 text-muted-foreground">×</button></div></div></article>
-          }) : <p className="py-16 text-center text-sm text-muted-foreground">Long press a word or select a phrase to ask AI or highlight it.</p>}</div> : !visible.length ? <div className="flex h-full min-h-40 flex-col items-center justify-center px-5 text-center"><p className="text-lg font-medium">{savedOnly ? "Keep a line for later" : "Listening for the next line…"}</p><p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">{savedOnly ? "Tap the bookmark beside a subtitle to collect phrases you want to revisit." : "Enable captions in your video player. Only the parts you play will appear here."}</p></div> : <div className="space-y-6 pb-[40dvh] pt-10 sm:space-y-8 sm:pt-14">{visible.map(line => {
+          }) : <p className="py-16 text-center text-sm text-muted-foreground">Long press a word or select a phrase to ask AI or highlight it.</p>}</div> : !visible.length ? <div className="flex h-full min-h-40 flex-col items-center justify-center px-5 text-center"><p className="text-lg font-medium">{savedOnly ? "Keep a line for later" : "Listening for the next line…"}</p><p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">{savedOnly ? "Tap the bookmark beside a subtitle to collect phrases you want to revisit." : "Enable captions in your video player. Only the parts you play will appear here."}</p></div> : <div className="space-y-1.5 pb-[40dvh] pt-4 sm:space-y-2 sm:pt-6">{visible.map(line => {
             const isActive = activeLines.some(item => item.id === line.id)
             const saved = line.bookmarked
-            return <div key={line.id} data-line-id={line.id} ref={line.id === targetId ? anchor : undefined} aria-current={isActive ? "true" : undefined} className="group flex items-start gap-2 sm:gap-6">
-              <div className="min-w-0 flex-1"><div
+            return <div key={line.id} data-line-id={line.id} ref={line.id === targetId ? anchor : undefined} aria-current={isActive ? "true" : undefined} className={`watch-subtitle-row group grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-0 rounded-xl border border-transparent px-2 py-1.5 transition-all duration-200 sm:gap-x-4 sm:px-3 sm:py-2 ${isActive ? "watch-subtitle-active border-primary/20 bg-primary/[0.045] shadow-sm shadow-primary/5" : "hover:border-border/60 hover:bg-muted/30"}`}>
+              <div className="col-span-1 flex min-w-0 items-start gap-2"><div className="min-w-0 flex-1"
                 onPointerDown={event => {
                   if (selectionMenu) { suppressSeek.current = true; return }
                   suppressSeek.current = false
@@ -644,7 +682,7 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
                     const start = target ? nodes.indexOf(target as HTMLElement) : -1
                     const word = start >= 0 ? words[start] : line.text
                     touchRange.current = start >= 0 ? { line, words, start } : null
-                    pressTimer.current = setTimeout(() => { suppressSeek.current = true; resumePlayback.current = session?.state === "playing"; if (target) placeSelectionMenu((target as HTMLElement).getBoundingClientRect()); setSelectionMenu({ line, text: word, selectedWords: start >= 0 ? [{ lineId: line.id, index: start, text: words[start], active: true }] : [] }); void sendCommand("pause") }, 550)
+                    pressTimer.current = setTimeout(() => { suppressSeek.current = true; if (listeningMode && !revealedLines.has(line.id)) { revealLine(line.id); return } resumePlayback.current = session?.state === "playing"; if (target) placeSelectionMenu((target as HTMLElement).getBoundingClientRect()); setSelectionMenu({ line, text: word, selectedWords: start >= 0 ? [{ lineId: line.id, index: start, text: words[start], active: true }] : [] }); void sendCommand("pause") }, 550)
                   }
                 }}
                 onPointerMove={event => {
@@ -676,7 +714,7 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
                   const start = target ? nodes.indexOf(target as HTMLElement) : -1
                   const word = start >= 0 ? words[start] : line.text
                   touchRange.current = start >= 0 ? { line, words, start } : null
-                  pressTimer.current = setTimeout(() => { suppressSeek.current = true; resumePlayback.current = session?.state === "playing"; if (target) placeSelectionMenu((target as HTMLElement).getBoundingClientRect()); setSelectionMenu({ line, text: word, selectedWords: start >= 0 ? [{ lineId: line.id, index: start, text: words[start], active: true }] : [] }); void sendCommand("pause") }, 550)
+                  pressTimer.current = setTimeout(() => { suppressSeek.current = true; if (listeningMode && !revealedLines.has(line.id)) { revealLine(line.id); return } resumePlayback.current = session?.state === "playing"; if (target) placeSelectionMenu((target as HTMLElement).getBoundingClientRect()); setSelectionMenu({ line, text: word, selectedWords: start >= 0 ? [{ lineId: line.id, index: start, text: words[start], active: true }] : [] }); void sendCommand("pause") }, 550)
                 }}
                 onTouchMove={event => {
                   stopFollowing()
@@ -703,7 +741,7 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
                 }}
                 onClick={() => { if (selectionMenu || suppressSeek.current) { suppressSeek.current = false; return } followingRef.current = true; setFollowing(true); setSavedOnly(false); setShowExpressions(false); setShowHistory(false); void sendCommand("seek", line.startMs) }}
                 className="relative w-full cursor-pointer select-none touch-pan-y text-left">
-                <span className={`whitespace-pre-line break-words text-[clamp(1.35rem,4.6vw,2.35rem)] font-semibold leading-[1.45] tracking-tight transition-colors duration-200 ${isActive ? "text-primary" : following && online ? "text-muted-foreground/65" : "text-foreground/85"}`}>{(() => { let wordIndex = -1; return line.text.split(/(\s+)/).map((piece, index) => {
+                <span className={`watch-subtitle-copy whitespace-pre-line break-words text-[clamp(1.25rem,4.2vw,2.25rem)] font-semibold leading-[1.4] tracking-tight transition-colors duration-200 ${listeningMode && !revealedLines.has(line.id) ? "watch-subtitle-hidden" : listeningMode ? "watch-subtitle-revealed" : ""} ${isActive ? "text-primary" : following && online ? "text-muted-foreground/65" : "text-foreground/85"}`}>{listeningMode && !revealedLines.has(line.id) ? line.text.replace(/\S/g, "*") : (() => { let wordIndex = -1; return line.text.split(/(\s+)/).map((piece, index) => {
                   if (/\s+/.test(piece)) return piece
                   wordIndex += 1
                   const normalizedPiece = piece.toLocaleLowerCase().replace(/[^\p{L}\p{N}'-]/gu, "")
@@ -711,9 +749,9 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
                   const selected = selectionMenu?.selectedWords?.some(word => word.lineId === line.id && word.index === wordIndex && word.active)
                   return <span key={index} data-word={piece.replace(/^[^\p{L}\p{N}'-]+|[^\p{L}\p{N}'-]+$/gu, "")} data-word-index={wordIndex} className={marked || selected ? "text-primary" : undefined}>{piece}</span>
                 })})()}</span>
-                <span className="mt-2 block text-[10px] tabular-nums text-muted-foreground/60">{line.approximate ? "≈ " : ""}{time(line.startMs)}</span>
               </div></div>
-              <div className="mt-1 flex shrink-0 flex-col gap-1"><button aria-label="Translation and usage" title="Translation and usage" onClick={event => { event.stopPropagation(); void explainExpression(line, line.text) }} className="flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><Languages className="size-4" /></button><button aria-label={saved ? "Remove from saved captions" : "Save caption for later"} aria-pressed={saved} disabled={busy === line.id} onClick={() => bookmark(line)} className={`flex size-9 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${saved ? "bg-primary/10 text-primary" : "text-muted-foreground/50 hover:bg-muted hover:text-foreground"}`}><Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} /></button></div>
+              <div className="col-span-1 mt-1 flex shrink-0 flex-col gap-1"><button aria-label="Translation and usage" title="Translation and usage" onClick={event => { event.stopPropagation(); void explainExpression(line, line.text) }} className="flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><Languages className="size-4" /></button><button aria-label={saved ? "Remove from saved captions" : "Save caption for later"} aria-pressed={saved} disabled={busy === line.id} onClick={() => bookmark(line)} className={`flex size-9 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${saved ? "bg-primary/10 text-primary" : "text-muted-foreground/50 hover:bg-muted hover:text-foreground"}`}><Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} /></button></div>
+              <span className={`col-span-1 mt-1 inline-flex w-fit items-center rounded-full bg-muted/55 px-2 py-0.5 text-[10px] tabular-nums transition-colors ${isActive ? "font-semibold text-primary" : "text-muted-foreground/70"}`}>{line.approximate ? "≈ " : ""}{time(line.startMs)}</span>
             </div>
           })}</div>}
         </div>
@@ -733,11 +771,27 @@ function WatchReader({ mediaId, connected, onBack }: { mediaId: string; connecte
           {vocabularyStatus && <p role="status" className="px-2 py-1 text-center text-xs text-muted-foreground">{vocabularyStatus}</p>}
         </div>}
         {!showExpressions && !savedOnly && !showHistory && <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-16 items-end justify-center pb-1">
-          {online && (!following || savedOnly) ? <button onClick={followPlayback} className="absolute bottom-3 left-1/2 flex -translate-x-1/2 pointer-events-auto items-center gap-2 rounded-full bg-primary px-5 py-3 text-xs font-medium text-primary-foreground shadow-lg"><ArrowDown className="size-4" />Back to live</button> : !online && !following && !nearSubtitleEnd ? <button type="button" aria-label="Scroll to latest subtitles" title="Latest subtitles" onClick={scrollToLatest} className="absolute bottom-3 right-3 flex size-11 pointer-events-auto items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"><ArrowDown className="size-5" /></button> : <span className="flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-2 text-[10px] text-muted-foreground"><Check className="size-3" />{online ? currentId ? "Following playback" : "Between captions" : `${lines.length} captions saved`}</span>}
+          {online && (!following || savedOnly) ? <button onClick={followPlayback} className="absolute bottom-3 left-1/2 flex -translate-x-1/2 pointer-events-auto items-center gap-2 rounded-full bg-primary px-5 py-3 text-xs font-medium text-primary-foreground shadow-lg"><ArrowDown className="size-4" />Back to live</button> : !online && !following && !nearSubtitleEnd ? <button type="button" aria-label="Scroll to latest subtitles" title="Latest subtitles" onClick={scrollToLatest} className="absolute bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-3 flex size-11 pointer-events-auto items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"><ArrowDown className="size-5" /></button> : <span className="flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-2 text-[10px] text-muted-foreground"><Check className="size-3" />{online ? currentId ? "Following playback" : "Between captions" : `${lines.length} captions saved`}</span>}
         </div>}
       </div>
       </div>
     </div>}
+    <div className="watch-control-dock fixed inset-x-0 bottom-0 z-30 flex items-center justify-center gap-3 border-t border-border/70 bg-background/90 px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-xl backdrop-blur-xl lg:inset-x-auto lg:bottom-6 lg:right-6 lg:rounded-full lg:border lg:px-4">
+      <button type="button" aria-label={`Rewind ${seekStep} seconds`} disabled={!online || !connected} onClick={() => seekBy(-seekStep)} className="watch-control-button flex size-11 items-center justify-center rounded-full bg-muted/80 text-foreground disabled:opacity-40"><Rewind className="size-5" /></button>
+      <button type="button" aria-label={session?.state === "paused" ? "Play video" : "Pause video"} disabled={!online || !connected} onClick={() => void sendCommand(session?.state === "paused" ? "play" : "pause")} className="watch-play-button flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 disabled:opacity-40">{session?.state === "paused" ? <Play className="size-5 fill-current" /> : <Pause className="size-5 fill-current" />}</button>
+      <button type="button" aria-label={`Forward ${seekStep} seconds`} disabled={!online || !connected} onClick={() => seekBy(seekStep)} className="watch-control-button flex size-11 items-center justify-center rounded-full bg-muted/80 text-foreground disabled:opacity-40"><FastForward className="size-5" /></button>
+      <button type="button" aria-pressed={listeningMode} aria-label="Listening mode" onClick={() => { setListeningMode(value => !value); setRevealedLines(new Set()) }} className={`watch-control-button flex size-11 items-center justify-center rounded-full ${listeningMode ? "bg-primary text-primary-foreground" : "bg-muted/80 text-foreground"}`}><Ear className="size-5" /></button>
+      <button type="button" aria-label="Playback settings" onClick={() => setControlsSettingsOpen(true)} className="watch-control-button flex size-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><Settings className="size-5" /></button>
+    </div>
+    <Drawer open={controlsSettingsOpen} onOpenChange={setControlsSettingsOpen} swipeDirection="down" showSwipeHandle>
+      <DrawerContent className="[--drawer-inset:0px] inset-x-0 bottom-0 m-0 flex h-auto max-h-[70dvh] w-full flex-col overflow-hidden rounded-t-xl rounded-b-none border-0 bg-background shadow-2xl">
+        <DrawerHeader className="shrink-0 border-b px-5 pb-4 pt-5 text-left"><DrawerTitle>Playback controls</DrawerTitle><DrawerDescription>Choose how far each skip button moves.</DrawerDescription></DrawerHeader>
+        <div className="space-y-5 px-5 py-6">
+          <label className="flex items-center justify-between gap-4 text-sm font-medium">Skip interval <select value={seekStep} onChange={event => { const value = Number(event.target.value); setSeekStep(value); window.localStorage.setItem("watch-seek-step", String(value)) }} className="rounded-lg bg-muted px-3 py-2">{[5, 10, 15, 30, 60].map(value => <option key={value} value={value}>{value} seconds</option>)}</select></label>
+          <button type="button" aria-pressed={listeningMode} onClick={() => { setListeningMode(value => !value); setRevealedLines(new Set()) }} className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium ${listeningMode ? "bg-primary text-primary-foreground" : "bg-muted"}`}><Ear className="size-4" />{listeningMode ? "Listening mode on" : "Turn on listening mode"}</button>
+        </div>
+      </DrawerContent>
+    </Drawer>
     <Drawer open={translationDrawer.open} onOpenChange={open => setTranslationDrawer(current => ({ ...current, open }))} swipeDirection="down" showSwipeHandle>
       <DrawerContent className="[--drawer-inset:0px] inset-x-0 bottom-0 m-0 flex h-[min(88dvh,54rem)] max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-xl rounded-b-none border-0 bg-background shadow-2xl">
         <DrawerHeader className="shrink-0 border-b bg-background px-5 pb-4 pt-5 text-left sm:px-7">

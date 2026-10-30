@@ -1,8 +1,9 @@
 "use client"
 
-import { LogOut, Settings, User } from "lucide-react"
+import { LogOut, Maximize, Minimize, Settings, User } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 import { authClient } from "@/lib/auth-client"
 
@@ -38,8 +39,15 @@ function getInitials(name: string) {
 export function AppHeader() {
     const pathname = usePathname()
     const router = useRouter()
+    const [isFullscreen, setIsFullscreen] = useState(false)
 
     const { data: session } = authClient.useSession()
+
+    useEffect(() => {
+        const syncFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement))
+        document.addEventListener("fullscreenchange", syncFullscreen)
+        return () => document.removeEventListener("fullscreenchange", syncFullscreen)
+    }, [])
 
     const currentPage =
         pageTitles.find((page) => page.href === pathname || (page.href !== "/" && pathname.startsWith(`${page.href}/`)))?.title ?? "Engbek"
@@ -49,6 +57,15 @@ export function AppHeader() {
 
         router.push("/login")
         router.refresh()
+    }
+
+    const toggleFullscreen = async () => {
+        try {
+            if (document.fullscreenElement) await document.exitFullscreen()
+            else await document.documentElement.requestFullscreen()
+        } catch {
+            // Fullscreen is optional and may be blocked by the browser.
+        }
     }
 
     const user = session?.user
@@ -132,6 +149,11 @@ export function AppHeader() {
                         </div>
 
                         <DropdownMenuSeparator />
+
+                        <DropdownMenuItem onClick={() => void toggleFullscreen()} className="cursor-pointer">
+                            {isFullscreen ? <Minimize className="mr-2 size-4" /> : <Maximize className="mr-2 size-4" />}
+                            {isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                        </DropdownMenuItem>
 
                         <DropdownMenuItem render={<Link href="/settings" />} className="cursor-pointer">
                             <Settings className="mr-2 size-4" />

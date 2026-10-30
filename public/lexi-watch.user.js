@@ -67,6 +67,9 @@
   let connectionGeneration = 0;
   let sendGeneration = 0;
   let deviceId = connection?.deviceId || "";
+  let youtubeTranscript = null;
+  let youtubeTranscriptKey = "";
+  let youtubeTranscriptLoading = null;
 
   const saved = GM_getValue(storageKey, null);
   if (saved?.tokenHash === tokenHash) {
@@ -325,6 +328,54 @@
     }
     return { track: `${SOURCE}:screen`, language: null };
   }
+  function getYouTubeCaptionTracks() {
+    if (SOURCE !== "youtube") return [];
+    try {
+      const player = ytPlayer();
+      const response = player?.getPlayerResponse?.() || unsafeWindow.ytInitialPlayerResponse;
+      return response?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+    } catch { return []; }
+  }
+  function getYouTubeTranscript(videoKey) {
+    if (youtubeTranscriptKey === videoKey && youtubeTranscript) return Promise.resolve(youtubeTranscript);
+    if (youtubeTranscriptKey === videoKey && youtubeTranscriptLoading) return youtubeTranscriptLoading;
+    youtubeTranscriptKey = videoKey;
+    youtubeTranscript = null;
+    const selected = (() => { try { return ytPlayer()?.getOption?.("captions", "track"); } catch { return null; } })();
+    const tracks = getYouTubeCaptionTracks();
+    const chosen = tracks.find(track => selected && (track.vss_id === selected.vss_id || track.vss_id === selected.id || track.languageCode === selected.languageCode))
+      || tracks.find(track => track.languageCode === selected?.languageCode)
+      || tracks[0];
+    if (!chosen?.baseUrl) return Promise.resolve(null);
+    const url = new URL(chosen.baseUrl);
+    url.searchParams.set("fmt", "json3");
+    const trackKey = `youtube:${chosen.vss_id || chosen.id || chosen.languageCode}:${chosen.kind || ""}`.slice(0, 200);
+    youtubeTranscriptLoading = new Promise(resolve => {
+      GM_xmlhttpRequest({
+        method: "GET", url: url.href, anonymous: true, timeout: 8_000, redirect: "error",
+        onload(response) {
+          try {
+            if (response.status < 200 || response.status >= 300 || youtubeTranscriptKey !== videoKey) { resolve(null); return; }
+            const data = JSON.parse(response.responseText);
+            const events = (data.events || []).filter(event => Array.isArray(event.segs) && Number.isFinite(Number(event.tStartMs)));
+            const cues = events.map(event => {
+              const text = plain(event.segs.map(segment => segment.utf8 || "").join(""));
+              const startMs = Math.max(0, Math.round(Number(event.tStartMs)));
+              const endMs = Math.max(startMs, startMs + Math.max(0, Math.round(Number(event.dDurationMs) || 0)));
+              return text ? { text, startMs, endMs } : null;
+            }).filter(Boolean);
+            if (!cues.length) { resolve(null); return; }
+            youtubeTranscript = { track: trackKey, language: chosen.languageCode?.slice(0, 40) || null, cues };
+            resolve(youtubeTranscript);
+          } catch { resolve(null); }
+          finally { if (youtubeTranscriptKey === videoKey) youtubeTranscriptLoading = null; }
+        },
+        onerror() { if (youtubeTranscriptKey === videoKey) youtubeTranscriptLoading = null; resolve(null); },
+        ontimeout() { if (youtubeTranscriptKey === videoKey) youtubeTranscriptLoading = null; resolve(null); },
+      });
+    });
+    return youtubeTranscriptLoading;
+  }
   function subtitleElements() {
     const selectors = SOURCE === "youtube" ? [".ytp-caption-window-container .caption-visual-line"] : [".subtitles-container", ".subtitle-container", '[class*="subtitle-text"]', '[class*="subtitles-container"]', '[class*="subtitle-container"]'];
     const candidates = selectors.flatMap(selector => [...document.querySelectorAll(selector)]);
@@ -413,11 +464,29 @@
   async function capture(video) {
     activeKeys = [];
     activeTrack = null;
-    const position = ms(video.currentTime);
+    let position = ms(video.currentTime);
     const jumped = video.seeking || Math.abs(position - lastPosition) > 1800;
     lastPosition = position;
     if (jumped) lastDom = [];
     if (video.seeking || video.readyState < 2) return;
+    if (SOURCE === "youtube") {
+      if (youtubeTranscriptKey !== mediaKey() || (!youtubeTranscript && !youtubeTranscriptLoading)) void getYouTubeTranscript(mediaKey());
+      if (youtubeTranscriptKey === mediaKey() && youtubeTranscriptLoading) await youtubeTranscriptLoading;
+      position = ms(video.currentTime);
+      lastPosition = position;
+      const transcript = youtubeTranscriptKey === mediaKey() ? youtubeTranscript : null;
+      if (transcript) {
+        activeTrack = transcript.track;
+        const currentCues = transcript.cues.filter(cue => cue.startMs <= position + 250 && cue.endMs >= position - 500);
+        for (const cue of currentCues) {
+          const cueKey = await sha(`${transcript.track}|${cue.startMs}|${cue.endMs}|${cue.text}`);
+          activeKeys.push(cueKey);
+          const old = cache.get(cueKey);
+          if (!old) record({ cueKey, track: transcript.track, language: transcript.language, text: cue.text, startMs: cue.startMs, endMs: cue.endMs, approximate: false, revision: 0 });
+        }
+        return;
+      }
+    }
     const tracks = [...video.textTracks].filter(track => track.mode === "showing" && ["subtitles", "captions"].includes(track.kind));
     if (tracks.length) {
       lastDom = [];
@@ -531,6 +600,7 @@
         restore(); pending.clear(); cache.clear(); lastDom = []; lastAck = 0;
         current = { clientSessionId: crypto.randomUUID(), sequence: 0, media: await metadata(video, key), positionMs: ms(video.currentTime), state: "paused", mediaKey: key };
         lastMediaKey = key; metadataAt = Date.now();
+        if (SOURCE === "youtube") void getYouTubeTranscript(key);
       } else if (Date.now() - metadataAt > 5000) {
         const refreshedMedia = await metadata(video, key);
         const identityChanged = current.media.source !== refreshedMedia.source || current.media.sourceId !== refreshedMedia.sourceId || current.media.imdbId !== refreshedMedia.imdbId || current.media.season !== refreshedMedia.season || current.media.episode !== refreshedMedia.episode;
